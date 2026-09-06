@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>tmp.0ut</title>
+<title>Interview : herm1t</title>
 <meta charset="utf-8">
 <style>
     body {
@@ -9,11 +9,8 @@
       margin: 0 auto;
       padding: 1em 0 1em 0;
     }
-/*
 @font-face { font-family: "gohu"; src: url("gohu.woff") format('woff'); }
        pre { font-family: "gohu", "Lucida Console", monospace, Monaco; font-size: 14px; line-height: 1.0; }
-*/
-       pre { font-size: 14px; line-height: 1.0; }
          a { color: #93ffd7; text-decoration: none; }
 </style>
 </head>
@@ -34,218 +31,197 @@
                                                        │                 █▄▄▄█ │
                                                        │                 ▄▄▄▄▄ │
                                                        │                   █   │
-Interview: herm1t                                      │                   █   │
-~ L'équipe de tmp.out                                  └───────────────────█ ──┘
-
-[ Traduit en français par @MorpheusH3x)from the ret2school team ]
+Interview : herm1t                                      │                   █   │
+~ tmp.0ut Staff                                        └───────────────────█ ──┘
 
 t0:
-  Parlez-nous de l'évolution des vx Linux au fil des ans - comment était-ce à 
-  l'époque où la documentation n'était pas aussi abondante qu'aujourd'hui, 
-  quelles découvertes dans ce domaine vous ont inspiré, et où voyez-vous 
-  l'avenir ?
+  Talk to us about the evolution of Linux vx over the years - what was it like 
+  when there wasn't the wealth of documentation there is today, what discoveries
+  in this area inspired you, and where do you see it going?
 
 herm1t:
-  Les articles de Silvio Cesare et de grugq m'ont beaucoup aidé, ainsi que la 
-  liste de diffusion de Tracy Reed. Il y a aussi eu quelques rencontres avec 
-  Bliss et d'autres anciens virus sur des systèmes de production sur lesquels je
-  travaillais. En ce qui concerne la documentation, je partage l'attitude des 
-  premiers OSS "lis les sources, Luke", c'est le meilleur type de documentation.
-  Bien que la scène du piratage des années 90 et du début des années 2000 ait 
-  capté mon imagination, j'étais timide et je pensais que personne ne 
-  s'intéressait à mon petit hobby et je progressais lentement dans les détails 
-  techniques jusqu'à ce que le contre-espionnage et la police frappent à ma 
-  porte.
+  The articles by Silvio Cesare and grugq helped a lot, as well as Tracy Reed's
+  mailing list. There were also a few encounters with Bliss and some other early
+  viruses on production systems I was working at. As for documentation, I share
+  the early OSS attitude "read the source, Luke", it's the best kind of 
+  documentation. Though the hacking scene of 90s and early 2000s captured my 
+  imagination I was shy and thought that nobody is interested in my little hobby
+  and am was slowly progressing through technicalities until counterintelligence
+  and police knocked at my door.
 
 t0:
-  Étiez-vous dans l'undernet #vir / #virus à la fin des années 90 ?
+  Were you in undernet #vir / #virus in the late 90's ?
 
 herm1t:
-  J'ai essayé :-) Mais avec mes mauvaises connaissances linguistiques et mon 
-  incapacité à expliquer pourquoi je suis ici, j'ai été rapidement banni des 
-  chans, juste pour revenir et écouter tranquillement et être ennuyé par des 
-  bavardages sans fin et sans rapport.
+  I tried :-) But with my lousy language skills and being unable to explain why
+  am I here, I got quickly banned from chans, just to return and quietly listen
+  and being bored by endless and unrelated chit-chats.
 
 t0:
-  Parlez-nous de l'évolution de votre propre écriture ELF vx - quelles 
-  techniques avez-vous utilisées en premier lieu, qu'avez-vous fait ensuite,
-  quelle a été la technique la plus difficile à réaliser ou celle dont vous êtes
-  le plus fier ?
+  Tell us about the evolution of your own ELF vx writing - what techniques did 
+  you use first, what did you do next, what was the hardest technique you did?
+  or the one you are most proud of?
 
 herm1t:
-  La chose la plus importante que j'ai apprise est que vous n'avez pas besoin de
-  l'assemblage pour faire les choses correctement (mais vous devriez quand même 
-  apprendre l'asm). En tant que real-coderz-use-asm, j'ai reproduit le truc du 
-  segment de Silvio en asm et j'ai continué de la même manièr pendant des années
-  jusqu'à ce que je réalise que les trucs de bas niveau sont inutiles. On peut 
-  facilement injecter le code sans fichier à partir de la mémoire, trouver les 
-  imports et tous ces trucs sans même s'embêter avec la longueur des 
-  instructions et autres, cela rend la vie bien meilleure :-)
+  The most significant thing I learnt that you don't need assembly to get the 
+  things right (But you should learn asm anyway). As real-coderz-use-asm dude 
+  I reproduced Silvio's segment thing in asm and continued in the same way for
+  years until I realized that low-level stuff is unnecessary. One can easily 
+  inject the code filelessly from memory, find imports and all such stuff 
+  without even bother about insns length and such, that makes a life much better
+  :-)
 
 t0:
-  Quelles méthodes d'infections préférez-vous, et quelles techniques 
-  préférez-vous ? A votre avis, à quoi pouvons-nous nous attendre à l'avenir ?
+  Which methods of infections do you prefer, and which techniques do you like 
+  more? How you think, what we can expect in the future?
 
 herm1t:
-  Les virus classiques de fichiers sont morts depuis longtemps. Et il existe de 
-  nombreux logiciels malveillants modernes qui exploitent deux failles de 
-  sécurité flagrantes dans les systèmes Unix (LD_PRELOAD et ptrace). Cependant, 
-  avec la restriction de ptrace et la possibilité que LD_PRELOAD soit également 
-  fermé, les anciennes techniques d'infection pourraient être réutilisées, par 
-  exemple en remplaçant libz.so dans sshd par une lib-boring-something ou en 
-  ajoutant un extrait au binaire :-) C'est une honte que les backdors sshd 
-  (comme dans "Darkside" d'ESET) ou quelque chose comme Darkleech doivent encore
-  être recompilés sur le système cible. Il semble que les blackhats aient raté 
-  leurs cours et tentent de réinventer la roue.
+  Classical file viruses are long time dead. And there are a lot of modern 
+  malware that exploits two glaring security holes in unix systems (LD_PRELOAD
+  and ptrace), though, with ptrace restricted and possibility that LD_PRELOAD 
+  will be shut down as well, the old time infection techniques could be re-used
+  again, eg by replacing libz.so in sshd by some lib-boring-something or adding
+  a snippet to the binary :-) It's a shame that sshd backdors (like in ESET's 
+  "Darkside") or something like Darkleech still needs to be recompiled on target
+  system. It seems that blackhats has missed their classes and trying to 
+  reinvent the wheel.
 
 t0:
-  Pensez-vous que l'écriture virale ELF a un avenir? Restons-nous dans le passé?
+  Do you think ELF virus writing has a future ? Are we staying in the past ?
 
 herm1t:
-  Avec Linux dans chaque téléphone, dans les IOT et les ordinateurs de bureau,
-  je suis sûr que les arts de l'infection ELF et les internes du système seront
-  de nouveau populaires.
+  With Linux in every phone, in IOTs and desktops I am sure that the arts of ELF
+  infection and system's internals will be popular again.
 
 t0:
-  Avez-vous vu la nouvelle protection CET / -fcf-protection qui est implémentée
-  sur 95% des binaires dans Ubuntu 20.04 ? Avez-vous des idées à ce sujet, ou 
-  avez-vous déjà essayé de l'utiliser ?
+  Have you seen the new CET / -fcf-protection that is implemented on 95% of 
+  binaries in Ubuntu 20.04? Do you have thoughts on this, or have you messed 
+  around with it yet?
 
 herm1t:
-  Je ne connais pas encore le CET, mais il y a une histoire que je peux vous 
-  raconter. Une fois, j'étais à la recherche d'un type et tout ce qui me 
-  manquait (pour compléter le contrôle de sécurité) était son numéro de 
-  téléphone. J'ai essayé de l'OSINT mais en vain. J'ai alors envoyé un e-mail à
-  partir d'un faux compte et j'ai écrit "envoyez-moi votre téléphone, dès que 
-  possible" et que pensez-vous qu'il l'ait fait ? On ne peut pas garantir la 
-  sécurité par des moyens purement techniques. Il y aura toujours une faille.
+  I am not familiar with CET yet, but there is a story I can tell you. Once I 
+  was after some guy and was I lacked (to complete the security check up) was 
+  his phone number. I tried to OSINT but to no avail. Then I just mailed him 
+  from some phony account and wrote "mail me your phone, ASAP" and what do you
+  think? he did. One cannot guarantee security by pure technical means. there 
+  will be always a loophole.
 
 t0:
-  Que pensez-vous des logiciels malveillants modernes ?
+  What do you think about modern malware?
 
 herm1t:
-  La plupart du temps, c'est extrêmement ennuyeux (mais toujours efficace).
+  Most of the time it's extremely boring (but still effective)
 
 t0:
-  Pensez-vous que la scène VX a encore une chance ? Avec tout ce qui s'est passé
-  ces derniers temps, les logiciels malveillants axés sur la monétisation, etc.
-  Que s'est-il passé avec VXHeavens ? Des projets pour l'avenir ? De quelle 
-  manière pensez-vous que l'écriture de logiciels malveillants a changé depuis 
-  la dernière décennie ?
+  Do you think the VX scene still has a chance? With everything that happened 
+  during more recent times, malware focused on monetization, etc. What happened
+  with VXHeavens? Plans for the future? In which ways do you think malware 
+  writing has changed since the last decade?
 
 herm1t:
-  La scène telle que nous la connaissions est morte (j'en ai discuté avec 
-  LovinGod récemment et il a qualifié VXH de "cercueil d'une scène"), mais il 
-  pourrait y avoir une communauté plus large, puisque l'écriture de virus et le
-  piratage en général sont devenus plus actuels que jamais. En 2018, j'ai repéré
-  le webshell (installé par quelqu'un d'autre que moi) sur le ministère de la 
-  justice de l'Ukraine et je me suis moqué d'eux sur facebook. La cyberpolice 
-  l'a pris au sérieux et a décidé de faire un raid sur le messager. J'étais au 
-  courant du raid à l'avance et j'ai dénoncé le site (car le partage de virus en
-  Ukraine est illégal sous toutes ses formes), je vais peut-être le restaurer 
-  sous une forme ou une autre. Avec l'audience du tribunal sur l'affaire Greta
-  dans quatre jours, il m'est difficile de fixer une date :-)
+  The scene as we knew it is dead (I discussed it with LovinGod recently and he 
+  called VXH a "coffin of a scene"), but there could be a wider community, since
+  both virus writing and hacking in general became more actual than ever. Back 
+  in 2018 I spotted the webshell (installed by anyone but me) on ministry of 
+  justice of ukraine and made some lulz on them on facebook. cyberpolice took it
+  seriously and they decided to raid the messenger. i knew about the raid in 
+  advance and shout down the site (cause sharing of viruses in Ukraine is 
+  illegal in any form), may be I will restore it in some form again. With court
+  hearing on "Greta case" four days ahead I find it hard to set a date :-)
 
-  En fait, avec tous ces trucs endbr64 dans les .plt et ailleurs, si vous 
-  modifiez le binaire, cela "protégera" votre virus des rets "non autorisés" :-)
+  btw, with all these endbr64 stuff in .plt and elsewhere, if you modify the 
+  binary it will "protect" your virus from "unauthorized" rets :-)
 
 t0:
-  Parlez-nous de vos propres virus linux - Casher, Cavity, Pulpit, autre ?
+  Talk to us about your own linux viruses - Casher, Cavity, Pulpit, other?
 
 herm1t:
-  La plupart de mes virus se concentraient sur des astuces avec le format ELF, 
-  j'ouvrais juste un exécutable au hasard et regardais les sections avec 
-  quelques questions en tête - pouvait-il être déplacé ou rétréci pour gagner 
-  de l'espace ? pouvait-on en prendre le contrôle pour éviter de toucher le 
-  point d'entrée ? C'est exactement ce que font les virus, "Coin" a obtenu plus
-  d'espace grâce aux exigences d'alignement des segments, "Caveat" a mis le 
-  chargeur dans PHT, "Arches" a utilisé des fonctions de remplissage, "Hasher" a
-  joué avec .hash, "PiLoT" avec .plt; les plus récents concernent l'arrêt de 
-  l'utilisation de l'assemblage, l'arrêt des schémas de type DOS d'utilisation 
-  directe des syscalls et le passage aux importations de libc qui est toujours 
-  présente en mémoire et l'approfondissement de l'auto-relocalisation (RELx) et
-  du métamorphisme (Lacrimae). Depuis, je suis toujours intéressé par les 
-  aspects internes de la glibc/kernel car elle m'a beaucoup aidé dans la 
-  programmation système et la sécurité (ce que je fais pour vivre).
+  Most of my viruses were focused on tricks with the ELF format, I just opened
+  some random executable and looked through the sections with a few questions in
+  mind - could it be moved or shrinked to make some space? could you get control
+  from it to avoid touching entry point? So the viruses does exactly just that, 
+  "Coin" got more space from segment alignment requirements, "Caveat" put loader
+  in PHT, "Arches" used functions padding, "Hasher" played with .hash, "PiLoT" 
+  with .plt; more recent ones is about stop using assembly, stop DOS-like 
+  patterns of using syscalls directly and switch to imports from libc which is 
+  always present in memory and go deeper to self-relocation (RELx) and 
+  metamorphism (Lacrimae). Since that time I am still interested in glibc/kernel
+  internals at it helped me a lot with system programming and security (which I 
+  am doing for a living)
 
 t0:
-  Que pensez-vous du métamorphisme dans les langues de script ? Je pense à 
-  "Metamorphism and Self-Compilation in JavaScript" écrit par SPTH.
+  What do you think about metamorphism in script languages ? I'm thinking about
+  "Metamorphism and Self-Compilation in JavaScript" written by SPTH
 
 herm1t:
-  Pour en revenir aux aspects techniques, vous savez probablement que je suis un
-  grand fan des compilateurs et que je suis absolument certain que les DSL et 
-  les compilateurs sont la prochaine grande chose après le métamorphisme, qu'il 
-  s'agisse de scripts (ce qui est moins compliqué) ou de code machine.
+  Getting back to technical stuff, you probably knew that I am a big fan of 
+  compilers related stuff and I am dead sure that stuff like DSL and compilers
+  are the next big thing after metamorphism, being it scripts (which is less 
+  complicated) or machine code.
 
 t0:
-  Comment avez-vous appris ces autres compétences - l'ingénierie sociale - cela 
-  vous vient-il naturellement ou avez-vous étudié la psychologie, ou lu des 
-  articles sur l'ingénierie sociale que d'autres ont fait ?
+  how did you learn these other skills - the social engineering - does it come 
+  naturally to you or did you study psychology, or read about social engineering
+  others did?
 
 herm1t:
-  Toute grande bureaucratie a des faiblesses inhérentes, c'est le système et il
-  peut être piraté, si vous saviez à quoi ressemble une demande légitime vous 
-  pourriez la falsifier, en utilisant la rivalité inter-agences vous pourriez ne
-  leur laisser aucun autre choix que de procéder. En ayant accès aux mails 
-  piratés, vous pouvez virtuellement entrer dans la tête de la cible et la 
-  manipuler pour qu'elle fasse ce que vous voulez. J'aime plus le processus, ce 
-  moment précis où vous trouvez votre chemin autour de la sécurité. Mais la 
-  phase de "message", lorsque vous mettez les informations en ligne et que vous 
-  informez la presse, est la même. Vous devez délivrer votre message à la fois
-  aux cibles pour les rendre douloureuses et à un large public, pour convaincre
-  les gens que c'était la bonne chose à faire. Comme le piratage mais avec des 
-  gens au lieu de machines.
+  Any large bureaucracy has inherent weaknesses, it's the system and it can be 
+  hacked, if you knew how legitimate request looks like you could forge it, by 
+  using interagency rivalry you could left them no choice but to proceed. Having
+  access to hacked mails you can get virtually into the head of the target and 
+  manipulate person into doing something you need. I more like the process, that
+  very moment when you find your way around the security. But the "message" 
+  phase, when you put the dumped info online and tip of the press is the same.
+  You need to deliver your message both to the targets to make them sorrow and
+  wide audience, to convince people that that was right thing to do, so it a bit
+  like hacking but with people instead of machines.
 
 t0:
-  Que pensez-vous des CTF et autres compétitions de hacking ?
+  What do you think about CTFs and other hacking competitions ?
 
 herm1t:
-  Je n'aime pas les CTF car je déteste la pression du temps. Je sais comment 
-  faire les choses rapidement et rester calme, mais ça m'énerve quand je vois 
-  les horloges tourner.
+  I don't like CTFs cause I hate time pressure. I know how to do things quick 
+  and stay calm, but it ticks me off when I see clocks ticking.
 
 t0:
-  Avez-vous endommagé votre propre système en testant un virus ? Si oui, 
-  pouvez-vous nous parler un peu de ce cas ?
+  Have you damaged your own system testing a virus? If yes can you talk a bit 
+  about the case?
 
 herm1t:
-  Étant donné qu'aucun de mes virus n'a de charge utile destructrice et qu'ils 
-  sont généralement limités intentionnellement au répertoire courant, il n'y a
-  pas de risque à les tester. Ils peuvent s'échapper une ou deux fois, mais il 
-  est facile de réinstaller les paquets concernés.
+  Since none of my viruses has destructive payloads and usually they were 
+  intentionally limited to current directory it was safe to test them. May be
+  one or two times they escape but it is easy to reinstall affected packages.
 
 t0:
-  À quoi ressemblerait votre virii de rêve ?
+  What would your dream virii look be like?
 
 herm1t:
-  Complexité, irrégularité. Plus c'est complexe, mieux c'est.
+  Complexity, irregularity. More complex, more better.
 
 t0:
-  Dans quels autres endroits que la technologie cherchez-vous à vous inspirer ?
+  What other places outside technology do you look to get inspiration from?
 
 herm1t:
-  C'est difficile pour moi de trouver quelque chose en dehors de la technologie,
-  je fais sûrement les choses habituelles que tout le monde fait, mais mes 
-  préférés sont les mathématiques, la cryptographie et la politique.
+  It's hard for me to find something outside technology, surely I do usual 
+  things all the people do, but my favorites are math, cryptography and messing
+  in politics.
 
 t0:
-  CPouvez-vous nous faire part de vos réflexions sur les rançongiciels ?
+  Can you share some thoughts on ransomeware?
 
 herm1t:
-  Les ransomwares sont aussi vieux que notre domaine. Le cheval de Troie SIDA a
-  été écrit en 1989 ! L'utilisation généralisée des crypto-monnaies et leur 
-  nature moins traçable ont rendu la prolifération des ransomwares inévitable.
-  D'un point de vue technique, c'est ennuyeux (à l'exception des erreurs 
-  hilarantes en cryptographie que certains auteurs ont commises, omme la 
-  génération de la clé par un RNG dont la graine est time(NULL), et après 
-  l'humiliation publique, le remplacement par quelque chose comme 
-  md5(time(NULL)).
+  Ransomware is old as our field are. The AIDS trojan was written in 1989! Wide
+  use of cryptocurrency and its less traceable nature made the proliferation of
+  ransomware inevitable. From technical point of view it's boring (except for 
+  hilarious mistakes in cryptography some authors did, like generating the key
+  by RNG seeded with time(NULL), and after public humiliation replacing it by 
+  something like md5(time(NULL))
 
 t0:
-  C'est ton espace libre, herm1t. Tu peux y laisser ce que tu veux : des 
-  salutations ou des souhaits pour des amis ou quelqu'un d'autre, etc.
+  This is your free space, herm1t. Here you can leave anything you want: greets 
+  or wishes for friends or someone else, etc.
 
 herm1t:
-  Salutations à tous les hackers et vxers du passé et du futur :)
+  Greetz to all hackers and vxers of past and future :)
+[ Traduction par Tedsig42 ]
 </pre></div></center></body></html>
